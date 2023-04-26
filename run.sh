@@ -1,6 +1,6 @@
 git fetch
 ping -c 4 127.0.0.1 > a.txt
-git reset --hard origin/main
+#git reset --hard origin/main
 ping -c 4 127.0.0.1 > a.txt
 git fetch
 ping -c 4 127.0.0.1 > a.txt
