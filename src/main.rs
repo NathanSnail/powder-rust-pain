@@ -37,6 +37,10 @@ fn main() {
 		},
 	)
 	.expect("failed to create device");
+	for q in queues {
+		println!("{q:?}");
+	}
+	println!("{device:?}");
 
 
     /*println!("Hello, wordle!");
