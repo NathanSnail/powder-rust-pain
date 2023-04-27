@@ -1,4 +1,13 @@
+use vulkano::VulkanLibrary;
+use vulkano::instance::{Instance, InstanceCreateInfo};
+
+let library = VulkanLibrary::new().expect("no local Vulkan library/DLL");
+let instance = Instance::new(library, InstanceCreateInfo::default())
+    .expect("failed to create instance");
+
 fn main() {
+	
+
     println!("Hello, wordle!");
 	println!("wow power");
 	let mut loop_val: isize = 1;
