@@ -1,12 +1,12 @@
 use vulkano::VulkanLibrary;
 use vulkano::instance::{Instance, InstanceCreateInfo};
 
-let library = VulkanLibrary::new().expect("no local Vulkan library/DLL");
-let instance = Instance::new(library, InstanceCreateInfo::default())
-    .expect("failed to create instance");
 
 fn main() {
 	
+let library = VulkanLibrary::new().expect("no local Vulkan library/DLL");
+let instance = Instance::new(library, InstanceCreateInfo::default())
+    .expect("failed to create instance");
 
     /*println!("Hello, wordle!");
 	println!("wow power");
