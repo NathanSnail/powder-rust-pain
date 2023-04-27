@@ -37,6 +37,7 @@ fn main() {
 		},
 	)
 	.expect("failed to create device");
+	println!("tester9000");
 	for q in queues {
 		println!("{q:?}");
 	}
