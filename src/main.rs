@@ -19,4 +19,5 @@ fn main() {
 	println!("build me")*/
 	println!("gamed");
 	println!("gamed2");
+	println!("hamis");
 }
