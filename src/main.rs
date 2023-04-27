@@ -8,7 +8,7 @@ let instance = Instance::new(library, InstanceCreateInfo::default())
 fn main() {
 	
 
-    println!("Hello, wordle!");
+    /*println!("Hello, wordle!");
 	println!("wow power");
 	let mut loop_val: isize = 1;
 	while loop_val <= 100 {
@@ -16,5 +16,6 @@ fn main() {
 		loop_val *= 101;
 		loop_val = loop_val % 13;
 	}
-	println!("build me")
+	println!("build me")*/
+	println!("gamed");
 }
