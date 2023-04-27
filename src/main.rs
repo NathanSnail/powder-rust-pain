@@ -1,6 +1,6 @@
 use vulkano::VulkanLibrary;
 use vulkano::instance::{Instance, InstanceCreateInfo};
-use vulkano::device::QueueFlags;
+use vulkano::device::{QueueFlags, Device, DeviceCreateInfo, QueueCreateInfo};
 
 fn main() {
 	
@@ -25,6 +25,19 @@ fn main() {
     })
     .expect("couldn't find a graphical queue family") as u32;
 	println!("{queue_family_index}");
+	let (device, mut queues) = Device::new(
+		physical_device,
+		DeviceCreateInfo {
+			// here we pass the desired queue family to use by index
+			queue_create_infos: vec![QueueCreateInfo {
+			queue_family_index,
+            ..Default::default()
+        }],
+		..Default::default()
+		},
+	)
+	.expect("failed to create device");
+
 
     /*println!("Hello, wordle!");
 	println!("wow power");
