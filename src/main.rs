@@ -1,3 +1,4 @@
+use core::slice::SlicePattern;
 use std::error::Error;
 
 use vulkano::buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage};
@@ -182,6 +183,6 @@ fn main() {
         .unwrap();
 
     future.wait(None).unwrap();
-    let content = buffer.read().unwrap();
+    let content = buffer.read().unwrap().as_slice();
     println!("{content:?}");
 }
