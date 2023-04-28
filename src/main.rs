@@ -84,6 +84,7 @@ fn main() {
     )
     .expect("failed to create device");
     println!("Device acquired");
+    let queue = queues.next().unwrap();
 
     let command_buffer_allocator = StandardCommandBufferAllocator::new(
         device.clone(),
@@ -131,6 +132,7 @@ fn main() {
     let descriptor_set_layout = descriptor_set_layouts
         .get(descriptor_set_layout_index)
         .unwrap();
+
     let descriptor_set = PersistentDescriptorSet::new(
         &descriptor_set_allocator,
         descriptor_set_layout.clone(),
@@ -165,16 +167,12 @@ fn main() {
     let command_buffer = command_buffer_builder.build().unwrap();
 
     let future = sync::now(device.clone())
-        .then_execute(queues.clone(), command_buffer)
+        .then_execute(queue.clone(), command_buffer)
         .unwrap()
         .then_signal_fence_and_flush()
         .unwrap();
 
     future.wait(None).unwrap();
     let content = data_buffer.read().unwrap();
-	println!("{content:?}");
-
-    // for q in queues {
-    // 	println!("{q:?}");
-    // }
+    println!("{content:?}");
 }
