@@ -8,7 +8,7 @@ use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::device::{Device, DeviceCreateInfo, QueueCreateInfo, QueueFlags};
 use vulkano::instance::{Instance, InstanceCreateInfo};
 use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator};
-use vulkano::pipeline::{ComputePipeline, PipelineBindPoint};
+use vulkano::pipeline::{ComputePipeline, PipelineBindPoint,Pipeline};
 use vulkano::VulkanLibrary;
 use vulkano_shaders::*;
 
