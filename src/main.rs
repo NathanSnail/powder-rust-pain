@@ -24,7 +24,6 @@ fn main() {
         queue_family_properties.queue_flags.contains(QueueFlags::GRAPHICS)
     })
     .expect("couldn't find a graphical queue family") as u32;
-	println!("{queue_family_index}");
 	let (device, mut queues) = Device::new(
 		physical_device,
 		DeviceCreateInfo {
@@ -37,23 +36,9 @@ fn main() {
 		},
 	)
 	.expect("failed to create device");
-	println!("tester9000");
-	for q in queues {
-		println!("{q:?}");
-	}
-	println!("{device:?}");
-
-
-    /*println!("Hello, wordle!");
-	println!("wow power");
-	let mut loop_val: isize = 1;
-	while loop_val <= 100 {
-		print!("{loop_val}");
-		loop_val *= 101;
-		loop_val = loop_val % 13;
-	}
-	println!("build me")*/
-	println!("gamed");
-	println!("gamed2");
-	println!("hamis");
+	println!("Device acquired");
+	
+	// for q in queues {
+	// 	println!("{q:?}");
+	// }
 }
