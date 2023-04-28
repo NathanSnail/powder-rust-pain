@@ -25,7 +25,8 @@ fn main() {
         .expect("could not enumerate devices")
         .next()
         .expect("no devices available");
-    println!("{physical_device:?}");
+    let name = &physical_device.properties().device_name;
+	println!("{name:?}");
     for family in physical_device.queue_family_properties() {
         println!(
             "Found a queue family with {:?} queue(s)",
