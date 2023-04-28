@@ -144,7 +144,7 @@ fn main() {
     );
     let mut command_buffer_builder = AutoCommandBufferBuilder::primary(
         &command_buffer_allocator,
-        queues.queue_family_index(),
+        queue_family_index,
         CommandBufferUsage::OneTimeSubmit,
     )
     .unwrap();
