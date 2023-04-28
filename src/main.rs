@@ -11,6 +11,7 @@ use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemo
 use vulkano::pipeline::{ComputePipeline, PipelineBindPoint,Pipeline};
 use vulkano::VulkanLibrary;
 use vulkano_shaders::*;
+use vulkano::sync;
 
 #[derive(BufferContents)]
 #[repr(C)]
@@ -173,6 +174,6 @@ fn main() {
         .unwrap();
 
     future.wait(None).unwrap();
-    let content = data_buffer.read().unwrap();
+    let content = buffer.read().unwrap();
     println!("{content:?}");
 }
