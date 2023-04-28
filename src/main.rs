@@ -164,7 +164,7 @@ fn main() {
 
     let command_buffer = command_buffer_builder.build().unwrap();
 
-    let future = sync::now(device.clone())
+    let future = Sync::now(device.clone())
         .then_execute(queue.clone(), command_buffer)
         .unwrap()
         .then_signal_fence_and_flush()
