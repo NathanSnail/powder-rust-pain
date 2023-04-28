@@ -15,7 +15,6 @@ struct test {
 }
 
 fn main() {
-    let mut rng = rand::thread_rng();
     let library = VulkanLibrary::new().expect("no local Vulkan library/DLL");
     let instance =
         Instance::new(library, InstanceCreateInfo::default()).expect("failed to create instance");
