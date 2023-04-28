@@ -11,6 +11,7 @@ use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemo
 use vulkano::pipeline::{ComputePipeline, PipelineBindPoint};
 use vulkano::VulkanLibrary;
 use vulkano_shaders::*;
+use vulkano::sync::*;
 
 #[derive(BufferContents)]
 #[repr(C)]
@@ -164,7 +165,7 @@ fn main() {
 
     let command_buffer = command_buffer_builder.build().unwrap();
 
-    let future = Sync::now(device.clone())
+    let future = sync::now(device.clone())
         .then_execute(queue.clone(), command_buffer)
         .unwrap()
         .then_signal_fence_and_flush()
