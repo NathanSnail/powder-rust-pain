@@ -7,6 +7,7 @@ use vulkano::device::{Device, DeviceCreateInfo, QueueCreateInfo, QueueFlags};
 use vulkano::instance::{Instance, InstanceCreateInfo};
 use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator};
 use vulkano::VulkanLibrary;
+use vulkano_shaders::*;
 
 #[derive(BufferContents)]
 #[repr(C)]
@@ -14,6 +15,26 @@ struct TestStruct {
     first: i32,
     second: i32,
     res: i32,
+}
+
+mod cs {
+    vulkano_shaders::shader!{
+        ty: "compute",
+        src: r"
+            #version 460
+
+            layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+            layout(set = 0, binding = 0) buffer Data {
+                uint data[];
+            } buf;
+
+            void main() {
+                uint idx = gl_GlobalInvocationID.x;
+                buf.data[idx] *= 12;
+            }
+        ",
+    }
 }
 
 fn main() {
