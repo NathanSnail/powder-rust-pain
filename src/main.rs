@@ -12,6 +12,7 @@ use vulkano::pipeline::{ComputePipeline, PipelineBindPoint,Pipeline};
 use vulkano::VulkanLibrary;
 use vulkano_shaders::*;
 use vulkano::sync;
+use vulkano::sync::GpuFuture;
 
 #[derive(BufferContents)]
 #[repr(C)]
