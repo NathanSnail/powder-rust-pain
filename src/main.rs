@@ -1,4 +1,4 @@
-use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage};
+use vulkano::buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage};
 use vulkano::command_buffer::allocator::{
     StandardCommandBufferAllocator, StandardCommandBufferAllocatorCreateInfo,
 };
@@ -8,7 +8,9 @@ use vulkano::instance::{Instance, InstanceCreateInfo};
 use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator};
 use vulkano::VulkanLibrary;
 
-struct test {
+#[derive(BufferContents)]
+#[repr(C)]
+struct TestStruct {
     first: i32,
     second: i32,
     res: i32,
@@ -58,7 +60,7 @@ fn main() {
         StandardCommandBufferAllocatorCreateInfo::default(),
     );
     let memory_allocator = StandardMemoryAllocator::new_default(device.clone());
-    let data: test = test {
+    let data: TestStruct = TestStruct {
         first: 5,
         second: 7,
         res: 10,
