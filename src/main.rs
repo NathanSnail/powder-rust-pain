@@ -10,11 +10,10 @@ use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::device::{Device, DeviceCreateInfo, QueueCreateInfo, QueueFlags};
 use vulkano::instance::{Instance, InstanceCreateInfo};
 use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator};
-use vulkano::pipeline::{ComputePipeline, PipelineBindPoint,Pipeline};
+use vulkano::pipeline::{ComputePipeline, Pipeline, PipelineBindPoint};
+use vulkano::sync::{self, GpuFuture};
 use vulkano::VulkanLibrary;
 use vulkano_shaders::*;
-use vulkano::sync;
-use vulkano::sync::GpuFuture;
 
 #[derive(BufferContents)]
 #[repr(C)]
@@ -22,28 +21,6 @@ struct TestStruct {
     first: i32,
     second: i32,
     res: i32,
-}
-
-mod cs {
-    vulkano_shaders::shader! {
-        ty: "compute",
-        src: r"
-            #version 460
-
-            layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
-			
-
-
-            layout(set = 0, binding = 0) buffer Data {
-                uint[] data;
-            } buf;
-
-            void main() {
-                uint idx = gl_GlobalInvocationID.x;
-                buf.data[idx] *= 12;
-            }
-        ",
-    }
 }
 
 fn main() {
@@ -83,6 +60,10 @@ fn main() {
                 queue_family_index,
                 ..Default::default()
             }],
+            enabled_extensions: DeviceExtensions {
+                khr_storage_buffer_storage_class: true,
+                ..DeviceExtensions::empty()
+            },
             ..Default::default()
         },
     )
@@ -106,7 +87,7 @@ fn main() {
     let buffer = Buffer::from_iter(
         &memory_allocator,
         BufferCreateInfo {
-            usage: BufferUsage::UNIFORM_BUFFER,
+            usage: BufferUsage::STORAGE_BUFFER,
             ..Default::default()
         },
         AllocationCreateInfo {
@@ -117,6 +98,28 @@ fn main() {
     )
     .expect("failed to create buffer");
     println!("buffer (pogger)");
+
+    mod cs {
+        vulkano_shaders::shader! {
+            ty: "compute",
+            src: r"
+				#version 460
+	
+				layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+				
+	
+	
+				layout(set = 0, binding = 0) buffer Data {
+					uint[] data;
+				} buf;
+	
+				void main() {
+					uint idx = gl_GlobalInvocationID.x;
+					buf.data[idx] *= 12;
+				}
+			",
+        }
+    }
 
     let shader = cs::load(device.clone()).expect("failed to create shader module");
 
@@ -137,16 +140,14 @@ fn main() {
         .get(descriptor_set_layout_index)
         .unwrap();
 
-    let descriptor_set =
-	match PersistentDescriptorSet::new(
+    let descriptor_set = match PersistentDescriptorSet::new(
         &descriptor_set_allocator,
         descriptor_set_layout.clone(),
         [WriteDescriptorSet::buffer(0, buffer.clone())], // 0 is the binding
-    )
-    {
-		Ok(res) => res,
-		Err(e) => panic!("Error with {e:?}") 
-	};
+    ) {
+        Ok(res) => res,
+        Err(e) => panic!("Error with {e:?}"),
+    };
 
     let command_buffer_allocator = StandardCommandBufferAllocator::new(
         device.clone(),
@@ -154,7 +155,7 @@ fn main() {
     );
     let mut command_buffer_builder = AutoCommandBufferBuilder::primary(
         &command_buffer_allocator,
-        queue_family_index,
+        queue.queue_family_index(),
         CommandBufferUsage::OneTimeSubmit,
     )
     .unwrap();
@@ -174,8 +175,8 @@ fn main() {
 
     let command_buffer = command_buffer_builder.build().unwrap();
 
-    let future = sync::now(device.clone())
-        .then_execute(queue.clone(), command_buffer)
+    let future = sync::now(device)
+        .then_execute(queue, command_buffer)
         .unwrap()
         .then_signal_fence_and_flush()
         .unwrap();
