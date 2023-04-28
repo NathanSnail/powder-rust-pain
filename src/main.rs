@@ -11,7 +11,6 @@ use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemo
 use vulkano::pipeline::{ComputePipeline, PipelineBindPoint};
 use vulkano::VulkanLibrary;
 use vulkano_shaders::*;
-use vulkano::sync::*;
 
 #[derive(BufferContents)]
 #[repr(C)]
@@ -145,7 +144,7 @@ fn main() {
     );
     let mut command_buffer_builder = AutoCommandBufferBuilder::primary(
         &command_buffer_allocator,
-        queue.queue_family_index(),
+        queues.queue_family_index(),
         CommandBufferUsage::OneTimeSubmit,
     )
     .unwrap();
@@ -166,7 +165,7 @@ fn main() {
     let command_buffer = command_buffer_builder.build().unwrap();
 
     let future = sync::now(device.clone())
-        .then_execute(queue.clone(), command_buffer)
+        .then_execute(queues.clone(), command_buffer)
         .unwrap()
         .then_signal_fence_and_flush()
         .unwrap();
