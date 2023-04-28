@@ -1,3 +1,5 @@
+use std::error::Error;
+
 use vulkano::buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage};
 use vulkano::command_buffer::allocator::{
     StandardCommandBufferAllocator, StandardCommandBufferAllocatorCreateInfo,
@@ -135,12 +137,16 @@ fn main() {
         .get(descriptor_set_layout_index)
         .unwrap();
 
-    let descriptor_set = PersistentDescriptorSet::new(
+    let descriptor_set =
+	match PersistentDescriptorSet::new(
         &descriptor_set_allocator,
         descriptor_set_layout.clone(),
         [WriteDescriptorSet::buffer(0, buffer.clone())], // 0 is the binding
     )
-    .unwrap();
+    {
+		Ok(res) => res,
+		Err(e) => panic!("Error with {e:?}") 
+	};
 
     let command_buffer_allocator = StandardCommandBufferAllocator::new(
         device.clone(),
