@@ -187,5 +187,4 @@ fn main() {
 	{
 		println!("{i}");
 	}
-    println!("{content:?}");
 }
