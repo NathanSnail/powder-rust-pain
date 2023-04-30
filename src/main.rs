@@ -1,4 +1,3 @@
-use core::slice::SlicePattern;
 use std::error::Error;
 
 use vulkano::buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage};
