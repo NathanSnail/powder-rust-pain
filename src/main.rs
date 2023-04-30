@@ -182,7 +182,8 @@ fn main() {
         .unwrap();
 
     future.wait(None).unwrap();
-    let content = buffer.read().unwrap().iter();
+	let binding = buffer.read().unwrap();
+    let content = binding.iter();
 	for i in content
 	{
 		println!("{i}");
