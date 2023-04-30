@@ -180,7 +180,7 @@ fn main() {
         .unwrap()
         .then_signal_fence_and_flush()
         .unwrap();
-
+	println!("test");
     future.wait(None).unwrap();
 	let binding = buffer.read().unwrap();
     let content = binding.iter();
