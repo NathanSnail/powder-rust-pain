@@ -183,6 +183,10 @@ fn main() {
         .unwrap();
 
     future.wait(None).unwrap();
-    let content = buffer.read().unwrap().as_slice();
+    let content = buffer.read().unwrap().iter();
+	for i in content
+	{
+		println!("{i}");
+	}
     println!("{content:?}");
 }
