@@ -84,13 +84,14 @@ fn main() {
     // };
     let data = Vec::new();
     for a in 1..=20 {
-        for b in 1..=20 {
-            data.push(TestStruct {
-                first: a,
-                second: b,
-                res: 0,
-            });
-        }
+        // for b in 1..=20 {
+        //     data.push(TestStruct {
+        //         first: a,
+        //         second: b,
+        //         res: 0,
+        //     });
+        // }
+        data.push(a);
     }
 
     let data2 = 0..64;
