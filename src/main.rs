@@ -84,14 +84,14 @@ fn main() {
     // };
     let mut data = Vec::new();
     for a in 1..=20 {
-        // for b in 1..=20 {
-        //     data.push(TestStruct {
-        //         first: a,
-        //         second: b,
-        //         res: 0,
-        //     });
-        // }
-        data.push(a);
+        for b in 1..=20 {
+            data.push(TestStruct {
+                first: a,
+                second: b,
+                res: 0,
+            });
+        }
+        // data.push(a);
     }
 
     let data2 = 0..64;
@@ -105,7 +105,7 @@ fn main() {
             usage: MemoryUsage::Upload,
             ..Default::default()
         },
-        data2,
+        data.iter(),
     )
     .expect("failed to create buffer");
     println!("buffer (pogger)");
@@ -115,18 +115,24 @@ fn main() {
             ty: "compute",
             src: r"
 				#version 460
+
+                struct TestStruct {
+                    int first,
+                    int second,
+                    int res,
+                }
 	
 				layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 				
 	
 	
 				layout(set = 0, binding = 0) buffer Data {
-					uint[] data;
+					TestStruct[] data;
 				} buf;
 	
 				void main() {
 					uint idx = gl_GlobalInvocationID.x;
-					buf.data[idx] *= 11;
+					buf.data[idx].res = buf.data[idx].first * buf.data[idx].second;
 				}
 			",
         }
