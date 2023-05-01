@@ -126,7 +126,7 @@ fn main() {
 	
 				void main() {
 					uint idx = gl_GlobalInvocationID.x;
-					buf.data[idx] *= 12;
+					buf.data[idx] *= 11;
 				}
 			",
         }
