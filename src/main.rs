@@ -117,9 +117,9 @@ fn main() {
 				#version 460
 
                 struct TestStruct {
-                    int first,
-                    int second,
-                    int res,
+                    int first;
+                    int second;
+                    int res;
                 }
 	
 				layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
