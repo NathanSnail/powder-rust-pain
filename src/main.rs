@@ -86,8 +86,8 @@ fn main() {
     for a in 1..=20 {
         for b in 1..=20 {
             data.push(TestStruct {
-                first: a,
-                second: b,
+                first: a.clone(),
+                second: b.clone(),
                 res: 0,
             });
         }
