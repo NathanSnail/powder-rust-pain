@@ -105,7 +105,7 @@ fn main() {
             usage: MemoryUsage::Upload,
             ..Default::default()
         },
-        data.iter(),
+        data2,
     )
     .expect("failed to create buffer");
     println!("buffer (pogger)");
