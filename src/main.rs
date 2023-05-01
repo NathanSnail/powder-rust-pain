@@ -7,7 +7,7 @@ use vulkano::command_buffer::allocator::{
 use vulkano::command_buffer::{AutoCommandBufferBuilder, CommandBufferUsage, CopyBufferInfo};
 use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
 use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
-use vulkano::device::{Device, DeviceCreateInfo, QueueCreateInfo, QueueFlags, DeviceExtensions};
+use vulkano::device::{Device, DeviceCreateInfo, DeviceExtensions, QueueCreateInfo, QueueFlags};
 use vulkano::instance::{Instance, InstanceCreateInfo};
 use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator};
 use vulkano::pipeline::{ComputePipeline, Pipeline, PipelineBindPoint};
@@ -77,11 +77,21 @@ fn main() {
     );
     let memory_allocator = StandardMemoryAllocator::new_default(device.clone());
 
-    let data: TestStruct = TestStruct {
-        first: 5,
-        second: 7,
-        res: 10,
-    };
+    // let data: TestStruct = TestStruct {
+    //     first: 5,
+    //     second: 7,
+    //     res: 10,
+    // };
+    let data = Vec::new();
+    for a in 1..=20 {
+        for b in 1..=20 {
+            data.push(TestStruct {
+                first: a,
+                second: b,
+                res: 0,
+            });
+        }
+    }
 
     let data2 = 0..64;
     let buffer = Buffer::from_iter(
@@ -94,7 +104,7 @@ fn main() {
             usage: MemoryUsage::Upload,
             ..Default::default()
         },
-        data2,
+        data.iter(),
     )
     .expect("failed to create buffer");
     println!("buffer (pogger)");
@@ -180,12 +190,11 @@ fn main() {
         .unwrap()
         .then_signal_fence_and_flush()
         .unwrap();
-	println!("test");
+    println!("test");
     future.wait(None).unwrap();
-	let binding = buffer.read().unwrap();
+    let binding = buffer.read().unwrap();
     let content = binding.iter();
-	for i in content
-	{
-		println!("{i}");
-	}
+    for i in content {
+        println!("{i}");
+    }
 }
