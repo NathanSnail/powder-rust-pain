@@ -18,7 +18,7 @@ struct TestStruct {
 // device, queues,
 
 fn main() {
-    let (library, instance, device, mut queues) = gpu_constructor::construct_gpu();
+    let (library, _instance, device, mut queues) = gpu_constructor::construct_gpu();
 
     // -=-=-=-=-=
 
