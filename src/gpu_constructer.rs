@@ -1,21 +1,14 @@
-use std::error::Error;
-
-use vulkano::buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage};
-use vulkano::command_buffer::allocator::{
-    StandardCommandBufferAllocator, StandardCommandBufferAllocatorCreateInfo,
+use std::sync::Arc;
+use vulkano::device::{
+    Device, DeviceCreateInfo, DeviceExtensions, Queue, QueueCreateInfo, QueueFlags,
 };
-use vulkano::command_buffer::{AutoCommandBufferBuilder, CommandBufferUsage, CopyBufferInfo};
-use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
-use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
-use vulkano::device::{Device, DeviceCreateInfo, DeviceExtensions, QueueCreateInfo, QueueFlags};
 use vulkano::instance::{Instance, InstanceCreateInfo};
-use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator};
-use vulkano::pipeline::{ComputePipeline, Pipeline, PipelineBindPoint};
-use vulkano::sync::{self, GpuFuture};
 use vulkano::VulkanLibrary;
-use vulkano_shaders::*;
 
-pub fn construct_gpu() -> (Arc<Device>, ExactSizeIterator) {
+pub fn construct_gpu() -> (
+    Arc<Device>,
+    impl ExactSizeIterator + Iterator<Item = Arc<Queue>>,
+) {
     let library = VulkanLibrary::new().expect("no local Vulkan library/DLL");
     let instance =
         Instance::new(library, InstanceCreateInfo::default()).expect("failed to create instance");

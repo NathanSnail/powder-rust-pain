@@ -1,28 +1,26 @@
-use std::error::Error;
-
-use vulkano::buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage};
+use crate::sync::future::FenceSignalFuture;
+use crate::sync::future::NowFuture;
+use std::sync::Arc;
+use vulkano::buffer::Subbuffer;
 use vulkano::command_buffer::allocator::{
     StandardCommandBufferAllocator, StandardCommandBufferAllocatorCreateInfo,
 };
-use vulkano::command_buffer::{AutoCommandBufferBuilder, CommandBufferUsage, CopyBufferInfo};
+use vulkano::command_buffer::CommandBufferExecFuture;
+use vulkano::command_buffer::{AutoCommandBufferBuilder, CommandBufferUsage};
 use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
 use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
-use vulkano::device::{
-    Device, DeviceCreateInfo, DeviceExtensions, Queue, QueueCreateInfo, QueueFlags,
-};
-use vulkano::instance::{Instance, InstanceCreateInfo};
-use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator};
+use vulkano::device::{Device, Queue};
 use vulkano::pipeline::{ComputePipeline, Pipeline, PipelineBindPoint};
+use vulkano::shader::ShaderModule;
 use vulkano::sync::{self, GpuFuture};
-use vulkano::VulkanLibrary;
-use vulkano_shaders::*;
 
 pub fn deploy(
     shader: Arc<ShaderModule>,
-    device: Device,
-    queue: Queue,
+    device: Arc<Device>,
+    queue: Arc<Queue>,
+    buffer: &Subbuffer<[i32]>,
     work_group_counts: [u32; 3],
-) {
+) -> FenceSignalFuture<CommandBufferExecFuture<NowFuture>> {
     let compute_pipeline = ComputePipeline::new(
         device.clone(),
         shader.entry_point("main").unwrap(),
@@ -73,11 +71,9 @@ pub fn deploy(
 
     let command_buffer = command_buffer_builder.build().unwrap();
 
-    let future = sync::now(device)
+    sync::now(device)
         .then_execute(queue, command_buffer)
         .unwrap()
         .then_signal_fence_and_flush()
-        .unwrap();
-
-    future
+        .unwrap()
 }

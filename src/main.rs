@@ -1,22 +1,9 @@
-use std::error::Error;
-
 use vulkano::buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage};
-use vulkano::command_buffer::allocator::{
-    StandardCommandBufferAllocator, StandardCommandBufferAllocatorCreateInfo,
-};
-use vulkano::command_buffer::{AutoCommandBufferBuilder, CommandBufferUsage, CopyBufferInfo};
-use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
-use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
-use vulkano::device::{Device, DeviceCreateInfo, DeviceExtensions, QueueCreateInfo, QueueFlags};
-use vulkano::instance::{Instance, InstanceCreateInfo};
 use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator};
-use vulkano::pipeline::{ComputePipeline, Pipeline, PipelineBindPoint};
-use vulkano::sync::{self, GpuFuture};
-use vulkano::VulkanLibrary;
-use vulkano_shaders::*;
+use vulkano::sync::{self};
 
-mod gpu_constructer;
 mod deploy_shader;
+mod gpu_constructer;
 
 #[derive(BufferContents)]
 #[repr(C)]
@@ -26,14 +13,7 @@ struct TestStruct {
     res: i32,
 }
 
-mod cs {
-    vulkano_shaders::shader! {
-        ty: "compute",
-        path: "src/shaders/test.frag",
-    }
-}
-
-// device, queues, 
+// device, queues,
 
 fn main() {
     let (device, mut queues) = gpu_constructer::construct_gpu();
@@ -42,13 +22,11 @@ fn main() {
 
     let queue = queues.next().unwrap();
 
-    let command_buffer_allocator = StandardCommandBufferAllocator::new(
-        device.clone(),
-        StandardCommandBufferAllocatorCreateInfo::default(),
-    );
+    // let command_buffer_allocator = StandardCommandBufferAllocator::new(
+    //     device.clone(),
+    //     StandardCommandBufferAllocatorCreateInfo::default(),
+    // );
     let memory_allocator = StandardMemoryAllocator::new_default(device.clone());
-
-
 
     // let data: TestStruct = TestStruct {
     //     first: 5,
@@ -59,15 +37,13 @@ fn main() {
     for a in 1..=20 {
         for b in 1..=20 {
             data.push(TestStruct {
-                first: a.clone(),
-                second: b.clone(),
+                first: a,
+                second: b,
                 res: 0,
             });
         }
         // data.push(a);
     }
-
-
 
     let data2 = 0..64; //staging, gpu 1, gpu 2, download
     let buffer = Buffer::from_iter(
@@ -80,18 +56,29 @@ fn main() {
             usage: MemoryUsage::Upload,
             ..Default::default()
         },
-        data2
+        data2,
     )
     .expect("failed to create buffer");
     println!("buffer (pogger)");
 
+    mod cs {
+        vulkano_shaders::shader! {
+            ty: "compute",
+            path: "src/shaders/test.frag",
+        }
+    }
+
     let shader = cs::load(device.clone()).expect("failed to create shader module");
 
-    let future = deploy_shader::deploy(shader,device,queue,[1,1,1]);
+    let future = deploy_shader::deploy(shader, device, queue, &buffer, [1, 1, 1]);
 
     future.wait(None).unwrap();
     let binding = buffer.read().unwrap();
-    println!("{binding:?}");
+    for val in binding.iter()
+	{
+		println!("{val}");
+	}
+	// println!("{binding:?}");
     // let content = binding.iter();
     // for i in content {
     //     println!("{i}");
