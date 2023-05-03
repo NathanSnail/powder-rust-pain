@@ -7,6 +7,7 @@ use vulkano::VulkanLibrary;
 
 pub fn construct_gpu() -> (
     Arc<Device>,
+	Arc<Instance>,
     impl ExactSizeIterator + Iterator<Item = Arc<Queue>>,
 ) {
     let library = VulkanLibrary::new().expect("no local Vulkan library/DLL");
@@ -55,5 +56,5 @@ pub fn construct_gpu() -> (
     .expect("failed to create device");
     println!("Device acquired");
 
-    result
+    (result.0,instance,result.1)
 }

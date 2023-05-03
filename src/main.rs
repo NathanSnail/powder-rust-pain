@@ -4,6 +4,7 @@ use vulkano::sync::{self};
 
 mod deploy_shader;
 mod gpu_constructer;
+mod window;
 
 #[derive(BufferContents)]
 #[repr(C)]
@@ -16,7 +17,7 @@ struct TestStruct {
 // device, queues,
 
 fn main() {
-    let (device, mut queues) = gpu_constructer::construct_gpu();
+    let (device, instance, mut queues) = gpu_constructer::construct_gpu();
 
     // -=-=-=-=-=
 
@@ -78,6 +79,8 @@ fn main() {
 	{
 		println!("{val}");
 	}
+	window::window(instance)
+
 	// println!("{binding:?}");
     // let content = binding.iter();
     // for i in content {
