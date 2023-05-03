@@ -10,7 +10,7 @@ pub fn window(instance: Arc<Instance>, library: Arc<VulkanLibrary>) {
     let _required_extensions = vulkano_win::required_extensions(&library);
     let event_loop = EventLoop::new(); // ignore this for now
     let _surface = WindowBuilder::new()
-        .build_vk_surface(&event_loop, instance.clone())
+        .build_vk_surface(&event_loop, instance)
         .unwrap();
 
     event_loop.run(|event, _, control_flow| match event {
