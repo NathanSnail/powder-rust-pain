@@ -76,7 +76,7 @@ fn main() {
 
     future.wait(None).unwrap();
     let binding = buffer.read().unwrap();
-    for val in binding.iter() {
+    for _val in binding.iter() {
         // println!("{val}");
     }
 
