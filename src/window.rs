@@ -4,8 +4,7 @@ use vulkano::instance::InstanceCreateInfo;
 use vulkano::VulkanLibrary;
 use vulkano_win::VkSurfaceBuild;
 use winit::event::{Event, WindowEvent};
-use winit::event_loop::EventLoop;
-use winit::event_loop::ControlFlow;
+use winit::event_loop::{EventLoop,ControlFlow};
 use winit::window::WindowBuilder;
 
 pub fn window(library: Arc<VulkanLibrary>) {
