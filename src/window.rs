@@ -1,10 +1,13 @@
 use std::sync::Arc;
+use vulkano::buffer::{BufferContents, Buffer, BufferCreateInfo, BufferUsage};
 use vulkano::device::{
     physical::PhysicalDevice, Device, DeviceCreateInfo, DeviceExtensions, QueueCreateInfo,
 };
 use vulkano::image::ImageUsage;
 use vulkano::instance::{Instance, InstanceCreateInfo};
-use vulkano::memory::allocator::StandardMemoryAllocator;
+use vulkano::memory::allocator::{StandardMemoryAllocator, AllocationCreateInfo, MemoryUsage};
+use vulkano::pipeline::graphics::vertex_input::Vertex;
+use vulkano::pipeline::graphics::viewport::Viewport;
 use vulkano::swapchain::Swapchain;
 use vulkano::swapchain::SwapchainCreateInfo;
 use vulkano::VulkanLibrary;
@@ -15,13 +18,19 @@ use winit::window::{Window, WindowBuilder};
 
 mod utils;
 
-#[derive(BufferContents, Vertex)]
-#[repr(C)]
-struct CPUVertex {
-    #[format(R32G32_SFLOAT)]
-    position: [f32; 2],
+mod vs {
+    vulkano_shaders::shader! {
+        ty: "vertex",
+        path:"src/shaders/test_vert.vert"
+    }
 }
 
+mod fs {
+    vulkano_shaders::shader! {
+        ty: "fragment",
+		path:"src/shaders/test_frag.frag"
+    }
+}
 
 pub fn window(
     physical_device: Arc<PhysicalDevice>,
@@ -116,6 +125,54 @@ pub fn window(
     let framebuffers = utils::get_framebuffers(&images, render_pass.clone());
 
     let memory_allocator = StandardMemoryAllocator::new_default(device.clone());
+
+    let vertex1 = utils::CPUVertex {
+        position: [-0.5, -0.5],
+    };
+    let vertex2 = utils::CPUVertex {
+        position: [0.0, 0.5],
+    };
+    let vertex3 = utils::CPUVertex {
+        position: [0.5, -0.25],
+    };
+    let vertex_buffer = Buffer::from_iter(
+        &memory_allocator,
+        BufferCreateInfo {
+            usage: BufferUsage::VERTEX_BUFFER,
+            ..Default::default()
+        },
+        AllocationCreateInfo {
+            usage: MemoryUsage::Upload,
+            ..Default::default()
+        },
+        vec![vertex1, vertex2, vertex3],
+    )
+    .unwrap();
+
+    let vs = vs::load(device.clone()).expect("failed to create shader module");
+    let fs = fs::load(device.clone()).expect("failed to create shader module");
+
+	let mut viewport = Viewport {
+        origin: [0.0, 0.0],
+        dimensions: window_size.into(),
+        depth_range: 0.0..1.0,
+    };
+
+	let pipeline = utils::get_pipeline(
+        device.clone(),
+        vs.clone(),
+        fs.clone(),
+        render_pass.clone(),
+        viewport.clone(),
+    );
+
+	let mut command_buffers = utils::get_command_buffers(
+		&device,
+		&queue,
+		&pipeline,
+		&framebuffers,
+		&vertex_buffer,
+	);
 
     event_loop.run(|event, _, control_flow| match event {
         Event::WindowEvent {
