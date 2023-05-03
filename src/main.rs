@@ -18,7 +18,8 @@ struct TestStruct {
 // device, queues,
 
 fn main() {
-    let (library, _instance, device, mut queues) = gpu_constructor::construct_gpu();
+    let (library, physical_device, queue_family_index, _instance, device, mut queues) =
+        gpu_constructor::construct_gpu();
 
     // -=-=-=-=-=
 
@@ -80,7 +81,7 @@ fn main() {
         // println!("{val}");
     }
 
-    window::window(library);
+    window::window(physical_device, queue_family_index, library);
 
     // println!("{binding:?}");
     // let content = binding.iter();

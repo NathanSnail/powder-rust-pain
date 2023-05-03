@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use vulkano::device::physical::PhysicalDevice;
 use vulkano::device::{
     Device, DeviceCreateInfo, DeviceExtensions, Queue, QueueCreateInfo, QueueFlags,
 };
@@ -7,13 +8,15 @@ use vulkano::VulkanLibrary;
 
 pub fn construct_gpu() -> (
     Arc<VulkanLibrary>,
+    Arc<PhysicalDevice>,
+	u32,
     Arc<Instance>,
     Arc<Device>,
     impl ExactSizeIterator + Iterator<Item = Arc<Queue>>,
 ) {
     let library = VulkanLibrary::new().expect("no local Vulkan library/DLL");
-    let instance =
-        Instance::new(library.clone(), InstanceCreateInfo::default()).expect("failed to create instance");
+    let instance = Instance::new(library.clone(), InstanceCreateInfo::default())
+        .expect("failed to create instance");
     let physical_device = instance
         .enumerate_physical_devices()
         .expect("could not enumerate devices")
@@ -32,7 +35,7 @@ pub fn construct_gpu() -> (
         .queue_family_properties()
         .iter()
         .enumerate()
-        .position(|(_queue_family_index, queue_family_properties)| {
+        .position(|(queue_family_index, queue_family_properties)| {
             queue_family_properties
                 .queue_flags
                 .contains(QueueFlags::GRAPHICS)
@@ -40,7 +43,7 @@ pub fn construct_gpu() -> (
         .expect("couldn't find a graphical queue family") as u32;
 
     let result = Device::new(
-        physical_device,
+        physical_device.clone(),
         DeviceCreateInfo {
             // here we pass the desired queue family to use by index
             queue_create_infos: vec![QueueCreateInfo {
@@ -57,5 +60,12 @@ pub fn construct_gpu() -> (
     .expect("failed to create device");
     println!("Device acquired");
 
-    (library, instance, result.0, result.1)
+    (
+        library,
+        physical_device,
+        queue_family_index,
+        instance,
+        result.0,
+        result.1,
+    )
 }

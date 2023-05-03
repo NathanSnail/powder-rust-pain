@@ -2,15 +2,29 @@ use std::sync::Arc;
 use vulkano::device::{
     physical::PhysicalDevice, Device, DeviceCreateInfo, DeviceExtensions, QueueCreateInfo,
 };
+use vulkano::image::ImageUsage;
 use vulkano::instance::{Instance, InstanceCreateInfo};
+use vulkano::memory::allocator::StandardMemoryAllocator;
+use vulkano::swapchain::Swapchain;
+use vulkano::swapchain::SwapchainCreateInfo;
 use vulkano::VulkanLibrary;
 use vulkano_win::VkSurfaceBuild;
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::{Window, WindowBuilder};
 
+mod utils;
+
+#[derive(BufferContents, Vertex)]
+#[repr(C)]
+struct CPUVertex {
+    #[format(R32G32_SFLOAT)]
+    position: [f32; 2],
+}
+
+
 pub fn window(
-    physical_device: &Arc<PhysicalDevice>,
+    physical_device: Arc<PhysicalDevice>,
     queue_family_index: u32,
     library: Arc<VulkanLibrary>,
 ) {
@@ -55,12 +69,12 @@ pub fn window(
     ).expect("failed to create window device? how could the buffer succeed and this fail, gpu isn't plugged in?");
 
     let queue = queues.next().unwrap();
-    
-	let caps = physical_device
+
+    let caps = physical_device
         .surface_capabilities(&surface, Default::default())
         .expect("failed to get surface capabilities");
 
-    let dimensions = window.inner_size();
+    let window_size = window.inner_size();
     let composite_alpha = caps.supported_composite_alpha.into_iter().next().unwrap();
     let image_format = Some(
         physical_device
@@ -68,6 +82,40 @@ pub fn window(
             .unwrap()[0]
             .0,
     );
+
+    let (mut swapchain, images) = {
+        let caps = physical_device
+            .surface_capabilities(&surface, Default::default())
+            .expect("failed to get surface capabilities");
+
+        let dimensions = window.inner_size();
+        let composite_alpha = caps.supported_composite_alpha.into_iter().next().unwrap();
+        let image_format = Some(
+            physical_device
+                .surface_formats(&surface, Default::default())
+                .unwrap()[0]
+                .0,
+        );
+
+        Swapchain::new(
+            device.clone(),
+            surface,
+            SwapchainCreateInfo {
+                min_image_count: caps.min_image_count,
+                image_format,
+                image_extent: dimensions.into(),
+                image_usage: ImageUsage::COLOR_ATTACHMENT,
+                composite_alpha,
+                ..Default::default()
+            },
+        )
+        .unwrap()
+    };
+
+    let render_pass = utils::get_render_pass(device.clone(), swapchain.clone());
+    let framebuffers = utils::get_framebuffers(&images, render_pass.clone());
+
+    let memory_allocator = StandardMemoryAllocator::new_default(device.clone());
 
     event_loop.run(|event, _, control_flow| match event {
         Event::WindowEvent {
