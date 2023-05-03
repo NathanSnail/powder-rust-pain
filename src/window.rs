@@ -1,4 +1,4 @@
-use std::convert::TryInto;
+
 use std::sync::Arc;
 use vulkano::instance::Instance;
 use vulkano::instance::InstanceCreateInfo;
@@ -20,7 +20,7 @@ pub fn window(library: Arc<VulkanLibrary>) {
     .expect("failed to create instance");
 
     let event_loop = EventLoop::new();
-    let surface = WindowBuilder::new()
+    let _surface = WindowBuilder::new()
         .build_vk_surface(&event_loop, instance)
         .unwrap();
     event_loop.run(|event, _, control_flow| match event {
@@ -31,7 +31,7 @@ pub fn window(library: Arc<VulkanLibrary>) {
             *control_flow = ControlFlow::Exit;
         }
         Event::WindowEvent {
-            event: WindowEvent::CursorMoved {device_id,position,..},
+            event: WindowEvent::CursorMoved {device_id: _,position,..},
 			..
         } => {
             println!("{position:?}");
