@@ -56,6 +56,7 @@ pub fn construct_gpu() -> (
     )
     .expect("failed to create device");
     println!("Device acquired");
+	println!("{}")
 
     (library, instance, result.0, result.1)
 }

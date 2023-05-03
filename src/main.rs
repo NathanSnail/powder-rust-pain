@@ -77,7 +77,7 @@ fn main() {
     future.wait(None).unwrap();
     let binding = buffer.read().unwrap();
     for val in binding.iter() {
-        println!("{val}");
+        // println!("{val}");
     }
 
     window::window(instance, library);
