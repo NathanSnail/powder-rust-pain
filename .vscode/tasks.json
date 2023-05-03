@@ -1,0 +1,11 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"command": "./.vscode/run.bat",
+			"group": "build",
+			"label": "commit, fix, run"
+		}
+	]
+}
