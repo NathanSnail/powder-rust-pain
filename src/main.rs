@@ -1,9 +1,10 @@
 use vulkano::buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage};
+use vulkano::library;
 use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator};
 use vulkano::sync::{self};
 
 mod deploy_shader;
-mod gpu_constructer;
+mod gpu_constructor;
 mod window;
 
 #[derive(BufferContents)]
@@ -17,7 +18,7 @@ struct TestStruct {
 // device, queues,
 
 fn main() {
-    let (device, instance, mut queues) = gpu_constructer::construct_gpu();
+    let (library, instance, device, mut queues) = gpu_constructor::construct_gpu();
 
     // -=-=-=-=-=
 
@@ -75,13 +76,13 @@ fn main() {
 
     future.wait(None).unwrap();
     let binding = buffer.read().unwrap();
-    for val in binding.iter()
-	{
-		println!("{val}");
-	}
-	window::window(instance)
+    for val in binding.iter() {
+        println!("{val}");
+    }
 
-	// println!("{binding:?}");
+    window::window(instance, library);
+
+    // println!("{binding:?}");
     // let content = binding.iter();
     // for i in content {
     //     println!("{i}");

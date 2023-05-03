@@ -6,13 +6,14 @@ use vulkano::instance::{Instance, InstanceCreateInfo};
 use vulkano::VulkanLibrary;
 
 pub fn construct_gpu() -> (
+    Arc<VulkanLibrary>,
+    Arc<Instance>,
     Arc<Device>,
-	Arc<Instance>,
     impl ExactSizeIterator + Iterator<Item = Arc<Queue>>,
 ) {
     let library = VulkanLibrary::new().expect("no local Vulkan library/DLL");
     let instance =
-        Instance::new(library, InstanceCreateInfo::default()).expect("failed to create instance");
+        Instance::new(library.clone(), InstanceCreateInfo::default()).expect("failed to create instance");
     let physical_device = instance
         .enumerate_physical_devices()
         .expect("could not enumerate devices")
@@ -56,5 +57,5 @@ pub fn construct_gpu() -> (
     .expect("failed to create device");
     println!("Device acquired");
 
-    (result.0,instance,result.1)
+    (library, instance, result.0, result.1)
 }
