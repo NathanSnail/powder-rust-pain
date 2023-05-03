@@ -80,7 +80,7 @@ fn main() {
         // println!("{val}");
     }
 
-    window::window(instance, library);
+    window::window(instance);
 
     // println!("{binding:?}");
     // let content = binding.iter();
