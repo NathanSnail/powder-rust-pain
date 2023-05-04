@@ -3,7 +3,7 @@ use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage};
 use vulkano::device::physical::PhysicalDeviceType;
 use vulkano::device::QueueFlags;
 use vulkano::device::{
-    physical::PhysicalDevice, Device, DeviceCreateInfo, DeviceExtensions, QueueCreateInfo,
+    Device, DeviceCreateInfo, DeviceExtensions, QueueCreateInfo,
 };
 use vulkano::image::ImageUsage;
 use vulkano::instance::{Instance, InstanceCreateInfo};
