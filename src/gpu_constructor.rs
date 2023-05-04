@@ -35,7 +35,7 @@ pub fn construct_gpu() -> (
         .queue_family_properties()
         .iter()
         .enumerate()
-        .position(|(queue_family_index, queue_family_properties)| {
+        .position(|(_queue_family_index, queue_family_properties)| {
             queue_family_properties
                 .queue_flags
                 .contains(QueueFlags::GRAPHICS)

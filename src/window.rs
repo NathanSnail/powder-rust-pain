@@ -1,12 +1,12 @@
 use std::sync::Arc;
-use vulkano::buffer::{BufferContents, Buffer, BufferCreateInfo, BufferUsage};
+use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage};
 use vulkano::device::{
     physical::PhysicalDevice, Device, DeviceCreateInfo, DeviceExtensions, QueueCreateInfo,
 };
 use vulkano::image::ImageUsage;
 use vulkano::instance::{Instance, InstanceCreateInfo};
 use vulkano::memory::allocator::{StandardMemoryAllocator, AllocationCreateInfo, MemoryUsage};
-use vulkano::pipeline::graphics::vertex_input::Vertex;
+
 use vulkano::pipeline::graphics::viewport::Viewport;
 use vulkano::swapchain::Swapchain;
 use vulkano::swapchain::SwapchainCreateInfo;
@@ -84,15 +84,15 @@ pub fn window(
         .expect("failed to get surface capabilities");
 
     let window_size = window.inner_size();
-    let composite_alpha = caps.supported_composite_alpha.into_iter().next().unwrap();
-    let image_format = Some(
+    let _composite_alpha = caps.supported_composite_alpha.into_iter().next().unwrap();
+    let _image_format = Some(
         physical_device
             .surface_formats(&surface, Default::default())
             .unwrap()[0]
             .0,
     );
 
-    let (mut swapchain, images) = {
+    let (swapchain, images) = {
         let caps = physical_device
             .surface_capabilities(&surface, Default::default())
             .expect("failed to get surface capabilities");
@@ -121,7 +121,7 @@ pub fn window(
         .unwrap()
     };
 
-    let render_pass = utils::get_render_pass(device.clone(), swapchain.clone());
+    let render_pass = utils::get_render_pass(device.clone(), swapchain);
     let framebuffers = utils::get_framebuffers(&images, render_pass.clone());
 
     let memory_allocator = StandardMemoryAllocator::new_default(device.clone());
@@ -152,7 +152,7 @@ pub fn window(
     let vs = vs::load(device.clone()).expect("failed to create shader module");
     let fs = fs::load(device.clone()).expect("failed to create shader module");
 
-	let mut viewport = Viewport {
+	let viewport = Viewport {
         origin: [0.0, 0.0],
         dimensions: window_size.into(),
         depth_range: 0.0..1.0,
@@ -160,13 +160,13 @@ pub fn window(
 
 	let pipeline = utils::get_pipeline(
         device.clone(),
-        vs.clone(),
-        fs.clone(),
-        render_pass.clone(),
-        viewport.clone(),
+        vs,
+        fs,
+        render_pass,
+        viewport,
     );
 
-	let mut command_buffers = utils::get_command_buffers(
+	let _command_buffers = utils::get_command_buffers(
 		&device,
 		&queue,
 		&pipeline,

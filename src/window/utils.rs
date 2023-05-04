@@ -2,11 +2,11 @@ use crate::window::Arc;
 use vulkano::buffer::{BufferContents, Subbuffer};
 use vulkano::command_buffer::{PrimaryAutoCommandBuffer, AutoCommandBufferBuilder, CommandBufferUsage, RenderPassBeginInfo, SubpassContents};
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
-use vulkano::device::physical::PhysicalDevice;
+
 use vulkano::device::{Device, Queue};
 use vulkano::image::{view::ImageView, SwapchainImage};
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
-use vulkano::pipeline::graphics::vertex_input::{BuffersDefinition, Vertex};
+use vulkano::pipeline::graphics::vertex_input::{Vertex};
 use vulkano::pipeline::graphics::viewport::{Viewport, ViewportState};
 use vulkano::pipeline::GraphicsPipeline;
 use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass};
