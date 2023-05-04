@@ -1,11 +1,13 @@
 use std::sync::Arc;
 use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage};
+use vulkano::device::physical::PhysicalDeviceType;
+use vulkano::device::QueueFlags;
 use vulkano::device::{
     physical::PhysicalDevice, Device, DeviceCreateInfo, DeviceExtensions, QueueCreateInfo,
 };
 use vulkano::image::ImageUsage;
 use vulkano::instance::{Instance, InstanceCreateInfo};
-use vulkano::memory::allocator::{StandardMemoryAllocator, AllocationCreateInfo, MemoryUsage};
+use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator};
 
 use vulkano::pipeline::graphics::viewport::Viewport;
 use vulkano::swapchain::Swapchain;
@@ -28,15 +30,11 @@ mod vs {
 mod fs {
     vulkano_shaders::shader! {
         ty: "fragment",
-		path:"src/shaders/test_frag.frag"
+        path:"src/shaders/test_frag.frag"
     }
 }
 
-pub fn window(
-    physical_device: Arc<PhysicalDevice>,
-    queue_family_index: u32,
-    library: Arc<VulkanLibrary>,
-) {
+pub fn window(library: Arc<VulkanLibrary>) {
     let required_extensions = vulkano_win::required_extensions(&library);
     let instance = Instance::new(
         library,
@@ -50,7 +48,7 @@ pub fn window(
     let event_loop = EventLoop::new();
 
     let surface = WindowBuilder::new()
-        .build_vk_surface(&event_loop, instance)
+        .build_vk_surface(&event_loop, instance.clone())
         .unwrap();
 
     let window = surface
@@ -64,6 +62,29 @@ pub fn window(
         khr_swapchain: true,
         ..DeviceExtensions::empty()
     };
+
+    let (physical_device, queue_family_index) = instance
+        .enumerate_physical_devices()
+        .expect("failed to get devices")
+        .filter(|p| p.supported_extensions().contains(&device_extensions))
+        .filter_map(|p| {
+            p.queue_family_properties()
+                .iter()
+                .enumerate()
+                .position(|(i, q)| {
+                    q.queue_flags.contains(QueueFlags::GRAPHICS)
+                        && p.surface_support(i as u32, &surface).unwrap_or(false)
+                })
+                .map(|q| (p, q as u32))
+        })
+        .min_by_key(|(p, _)| match p.properties().device_type {
+            PhysicalDeviceType::DiscreteGpu => 0,
+            PhysicalDeviceType::IntegratedGpu => 1,
+            PhysicalDeviceType::VirtualGpu => 2,
+            PhysicalDeviceType::Cpu => 3,
+            _ => 4,
+        })
+        .expect("no device available");
 
     let (device, mut queues) = Device::new(
         physical_device.clone(),
@@ -152,27 +173,16 @@ pub fn window(
     let vs = vs::load(device.clone()).expect("failed to create shader module");
     let fs = fs::load(device.clone()).expect("failed to create shader module");
 
-	let viewport = Viewport {
+    let viewport = Viewport {
         origin: [0.0, 0.0],
         dimensions: window_size.into(),
         depth_range: 0.0..1.0,
     };
 
-	let pipeline = utils::get_pipeline(
-        device.clone(),
-        vs,
-        fs,
-        render_pass,
-        viewport,
-    );
+    let pipeline = utils::get_pipeline(device.clone(), vs, fs, render_pass, viewport);
 
-	let _command_buffers = utils::get_command_buffers(
-		&device,
-		&queue,
-		&pipeline,
-		&framebuffers,
-		&vertex_buffer,
-	);
+    let _command_buffers =
+        utils::get_command_buffers(&device, &queue, &pipeline, &framebuffers, &vertex_buffer);
 
     event_loop.run(|event, _, control_flow| match event {
         Event::WindowEvent {

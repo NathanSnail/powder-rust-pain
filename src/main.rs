@@ -81,7 +81,7 @@ fn main() {
         // println!("{val}");
     }
 
-    window::window(physical_device, queue_family_index, library);
+    window::window(library);
 
     // println!("{binding:?}");
     // let content = binding.iter();
