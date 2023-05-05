@@ -1,28 +1,28 @@
 use std::sync::Arc;
 
-use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage};
+
 use vulkano::device::physical::PhysicalDevice;
 use vulkano::device::Queue;
 use vulkano::device::{
     physical::PhysicalDeviceType, Device, DeviceCreateInfo, DeviceExtensions, QueueCreateInfo,
     QueueFlags,
 };
-use vulkano::image::ImageUsage;
+
 use vulkano::instance::{Instance, InstanceCreateInfo};
-use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator};
+
 use vulkano::VulkanLibrary;
 
-use vulkano::pipeline::graphics::viewport::Viewport;
-use vulkano::swapchain::SwapchainCreateInfo;
-use vulkano::swapchain::{Surface, Swapchain};
+
+
+use vulkano::swapchain::{Surface};
 
 use vulkano_win::VkSurfaceBuild;
 use winit::dpi::PhysicalSize;
-use winit::event::{Event, WindowEvent};
-use winit::event_loop::{ControlFlow, EventLoop};
+
+use winit::event_loop::{EventLoop};
 use winit::window::{Window, WindowBuilder};
 
-pub fn initializeWindow(
+pub fn initialize_window(
     library: &Arc<VulkanLibrary>,
 ) -> (
     Arc<PhysicalDevice>,

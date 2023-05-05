@@ -1,22 +1,20 @@
 use std::sync::Arc;
 use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage};
-use vulkano::device::physical::{PhysicalDeviceType, self};
-use vulkano::device::QueueFlags;
-use vulkano::device::{
-    Device, DeviceCreateInfo, DeviceExtensions, QueueCreateInfo,
-};
+
+
+
 use vulkano::image::ImageUsage;
-use vulkano::instance::{Instance, InstanceCreateInfo};
+
 use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator};
 
 use vulkano::pipeline::graphics::viewport::Viewport;
 use vulkano::swapchain::Swapchain;
 use vulkano::swapchain::SwapchainCreateInfo;
 use vulkano::VulkanLibrary;
-use vulkano_win::VkSurfaceBuild;
+
 use winit::event::{Event, WindowEvent};
-use winit::event_loop::{ControlFlow, EventLoop};
-use winit::window::{Window, WindowBuilder};
+use winit::event_loop::{ControlFlow};
+
 
 mod utils;
 mod init;
@@ -113,7 +111,7 @@ pub fn window(library: Arc<VulkanLibrary>) {
     //         .unwrap()[0]
     //         .0,
     // );
-	let (physical_device,surface,device,window,window_size,event_loop,queue) = init::initializeWindow(&library);
+	let (physical_device,surface,device,window,window_size,event_loop,queue) = init::initialize_window(&library);
 
     let (swapchain, images) = {
         let caps = physical_device
