@@ -6,15 +6,8 @@ use vulkano::device::{
     Device,
 };
 
-
-
-
-
 use vulkano::swapchain::Surface;
-
-
 use winit::dpi::PhysicalSize;
-
 use winit::event_loop::EventLoop;
 use winit::window::{Window};
 
