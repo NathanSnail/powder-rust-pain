@@ -6,6 +6,7 @@ use vulkano::sync::{self};
 mod deploy_shader;
 mod gpu_constructor;
 mod window;
+mod pass_structs;
 
 #[derive(BufferContents)]
 #[repr(C)]

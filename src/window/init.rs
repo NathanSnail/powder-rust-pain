@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-
 use vulkano::device::physical::PhysicalDevice;
 use vulkano::device::Queue;
 use vulkano::device::{
@@ -12,27 +11,17 @@ use vulkano::instance::{Instance, InstanceCreateInfo};
 
 use vulkano::VulkanLibrary;
 
-
-
-use vulkano::swapchain::{Surface};
+use vulkano::swapchain::Surface;
 
 use vulkano_win::VkSurfaceBuild;
 use winit::dpi::PhysicalSize;
 
-use winit::event_loop::{EventLoop};
+use winit::event_loop::EventLoop;
 use winit::window::{Window, WindowBuilder};
 
-pub fn initialize_window(
-    library: &Arc<VulkanLibrary>,
-) -> (
-    Arc<PhysicalDevice>,
-    Arc<Surface>,
-    Arc<Device>,
-    Arc<Window>,
-    PhysicalSize<u32>,
-    EventLoop<()>,
-    Arc<Queue>,
-) {
+use crate::pass_structs::WindowInitialized;
+
+pub fn initialize_window(library: &Arc<VulkanLibrary>) -> WindowInitialized {
     let required_extensions = vulkano_win::required_extensions(library);
     let instance = Instance::new(
         library.clone(),
@@ -110,13 +99,13 @@ pub fn initialize_window(
             .unwrap()[0]
             .0,
     );
-    (
-        physical_device,
+    WindowInitialized {
+        physical_device, // cool rust feature you don't need field names if its the same
         surface,
         device,
         window,
         window_size,
         event_loop,
         queue,
-    )
+	}
 }
