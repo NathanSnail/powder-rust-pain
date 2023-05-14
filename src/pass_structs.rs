@@ -3,17 +3,16 @@ use std::sync::Arc;
 use vulkano::device::physical::PhysicalDevice;
 use vulkano::device::Queue;
 use vulkano::device::{
-    physical::PhysicalDeviceType, Device, DeviceCreateInfo, DeviceExtensions, QueueCreateInfo,
-    QueueFlags,
+    Device,
 };
 
-use vulkano::instance::{Instance, InstanceCreateInfo};
 
-use vulkano::VulkanLibrary;
+
+
 
 use vulkano::swapchain::Surface;
 
-use vulkano_win::VkSurfaceBuild;
+
 use winit::dpi::PhysicalSize;
 
 use winit::event_loop::EventLoop;
