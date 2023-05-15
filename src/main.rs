@@ -5,6 +5,8 @@ use vulkano::memory::allocator::{
 };
 use vulkano::sync::{self};
 
+use crate::pass_structs::Material;
+
 mod deploy_shader;
 mod gpu_constructor;
 mod pass_structs;
@@ -22,6 +24,17 @@ struct TestStruct {
 // device, queues,
 
 fn main() {
+    let mut world: Vec<Material> = Vec::new();
+    for i in 1..100 {
+        let i_f = i as f32;
+        world.push(Material {
+            id: i,
+            colour: [i_f / 100f32, i_f / 100f32, i_f / 100f32],
+            pos: [i_f, 100f32],
+            ..Default::default()
+        })
+    }
+
     let (library, _physical_device, _queue_family_index, _instance, device, mut queues) =
         gpu_constructor::construct_gpu();
 
@@ -82,11 +95,11 @@ fn main() {
     let future = deploy_shader::deploy(shader, device.clone(), queue.clone(), &buffer, [1, 1, 1]);
 
     future.wait(None).unwrap();
-    let binding = buffer.read().unwrap();
-    for _val in binding.iter() {
-        // println!("{val}");
-    }
+    // let binding = buffer.read().unwrap();
+    // for val in binding.iter() {
+    //     println!("{val}");
+    // }
 
-    window::make_window(library, memory_allocator, device, queue);
+    window::make_window(library, memory_allocator, device, queue, &mut world);
     //main.rs is done now as window now has control
 }

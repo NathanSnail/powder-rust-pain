@@ -22,7 +22,7 @@ use vulkano::sync::{self, FlushError, GpuFuture};
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::ControlFlow;
 
-use crate::pass_structs::WindowInitialized;
+use crate::pass_structs::{WindowInitialized, Material};
 use crate::simulation::sand;
 
 mod init;
@@ -47,6 +47,7 @@ pub fn make_window(
     compute_memory_allocator: GenericMemoryAllocator<std::sync::Arc<vulkano::memory::allocator::FreeListAllocator>>,
     compute_device: Arc<Device>,
     compute_queue: Arc<Queue>,
+	world: &mut Vec<Material>,
 ) {
     let WindowInitialized {
         physical_device: render_physical_device,
@@ -288,6 +289,7 @@ pub fn make_window(
                 &compute_memory_allocator,
                 &compute_device.clone(),
                 &compute_queue.clone(),
+				world,
             );
         }
         _ => (),
