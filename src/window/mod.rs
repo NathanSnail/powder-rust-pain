@@ -44,7 +44,7 @@ mod fs {
 
 pub fn make_window(
     library: Arc<VulkanLibrary>,
-    compute_memory_allocator: &'static GenericMemoryAllocator<std::sync::Arc<vulkano::memory::allocator::FreeListAllocator>>,
+    compute_memory_allocator: GenericMemoryAllocator<std::sync::Arc<vulkano::memory::allocator::FreeListAllocator>>,
     compute_device: Arc<Device>,
     compute_queue: Arc<Queue>,
 ) {

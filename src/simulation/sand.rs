@@ -21,7 +21,7 @@ mod sand_shader {
 }
 
 pub fn tick(
-    memory_allocator:&'static GenericMemoryAllocator<std::sync::Arc<vulkano::memory::allocator::FreeListAllocator>>,
+    memory_allocator: &GenericMemoryAllocator<std::sync::Arc<vulkano::memory::allocator::FreeListAllocator>>,
     device: &Arc<Device>,
     queue: &Arc<Queue>,
 ) {

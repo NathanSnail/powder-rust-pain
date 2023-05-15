@@ -33,9 +33,9 @@ fn main() {
     //     device.clone(),
     //     StandardCommandBufferAllocatorCreateInfo::default(),
     // );
-    static memory_allocator: &GenericMemoryAllocator<
+    let memory_allocator: GenericMemoryAllocator<
         std::sync::Arc<vulkano::memory::allocator::FreeListAllocator>,
-    > = &StandardMemoryAllocator::new_default(device.clone());
+    > = StandardMemoryAllocator::new_default(device.clone());
 
     // let data: TestStruct = TestStruct {
     //     first: 5,
@@ -56,7 +56,7 @@ fn main() {
 
     let data2 = 0..64; //staging, gpu 1, gpu 2, download
     let buffer = Buffer::from_iter(
-        memory_allocator,
+        &memory_allocator,
         BufferCreateInfo {
             usage: BufferUsage::STORAGE_BUFFER,
             ..Default::default()
