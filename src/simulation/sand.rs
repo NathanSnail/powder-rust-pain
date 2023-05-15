@@ -24,16 +24,9 @@ pub fn tick(
     memory_allocator: &GenericMemoryAllocator<std::sync::Arc<vulkano::memory::allocator::FreeListAllocator>>,
     device: &Arc<Device>,
     queue: &Arc<Queue>,
-	world: &mut Vec<Material>,
-) {
-    let material = Material {
-        colour: [1f32, 0.5, 0f32],
-        pos: [100f32, 100f32],
-		id: 1,
-        ..Default::default()
-    };
-    let materials = (0..64).map(|_| material.clone()).collect();
-    let buffer = upload_buffer(materials, memory_allocator);
+	world: &Vec<Material>,
+) -> Vec<Material> {
+    let buffer = upload_buffer(world.clone(), memory_allocator);
     let future = deploy_shader::deploy(
         sand_shader::load(device.clone()).expect("Failed to create compute shader."),
         device.clone(),
@@ -42,11 +35,12 @@ pub fn tick(
         [1, 1, 1],
     );
 	future.wait(None).unwrap();
-    // let binding = buffer.read().unwrap();
-    // for val in binding.iter() {
-    //     let id = val.id;
-	// 	println!("{id:?}");
-    // }
+    let binding = buffer.read().unwrap();
+	let mut new: Vec<Material> = Vec::new();
+    for val in binding.iter() {
+        new.push(val.clone());
+    }
+	new
 }
 
 pub fn upload_buffer(

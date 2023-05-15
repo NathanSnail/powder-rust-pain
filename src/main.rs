@@ -100,6 +100,6 @@ fn main() {
     //     println!("{val}");
     // }
 
-    window::make_window(library, memory_allocator, device, queue, &mut world);
+    window::make_window(library, memory_allocator, device, queue, world);
     //main.rs is done now as window now has control
 }

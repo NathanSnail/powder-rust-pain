@@ -47,7 +47,7 @@ pub fn make_window(
     compute_memory_allocator: GenericMemoryAllocator<std::sync::Arc<vulkano::memory::allocator::FreeListAllocator>>,
     compute_device: Arc<Device>,
     compute_queue: Arc<Queue>,
-	world: &mut Vec<Material>,
+	mut world: Vec<Material>,
 ) {
     let WindowInitialized {
         physical_device: render_physical_device,
@@ -285,11 +285,11 @@ pub fn make_window(
             sum_time /= 60f64;
             let fps = 1f64 / sum_time + 0.5;
             print!("\rFPS: {fps:.0?}   ");
-            sand::tick(
+            world = sand::tick(
                 &compute_memory_allocator,
                 &compute_device.clone(),
                 &compute_queue.clone(),
-				world,
+				&world,
             );
         }
         _ => (),
