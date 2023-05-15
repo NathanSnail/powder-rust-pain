@@ -23,9 +23,9 @@ pub fn tick(
     memory_allocator: &GenericMemoryAllocator<std::sync::Arc<vulkano::memory::allocator::FreeListAllocator>>,
     device: &Arc<Device>,
     queue: &Arc<Queue>,
-	world: &Vec<Material>,
+	world: &[Material],
 ) -> Vec<Material> {
-    let buffer = upload_buffer(world.clone(), memory_allocator);
+    let buffer = upload_buffer(world.to_owned(), memory_allocator);
     let future = deploy_shader::deploy(
         sand_shader::load(device.clone()).expect("Failed to create compute shader."),
         device.clone(),
