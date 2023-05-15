@@ -5,7 +5,7 @@ use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage};
 
 use vulkano::image::ImageUsage;
 
-use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator};
+use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator, MemoryAllocator};
 
 use vulkano::pipeline::graphics::viewport::Viewport;
 use vulkano::swapchain::{
@@ -20,6 +20,7 @@ use winit::event::{Event, WindowEvent};
 use winit::event_loop::ControlFlow;
 
 use crate::pass_structs::WindowInitialized;
+use crate::simulation::sand;
 
 mod init;
 mod utils;
@@ -27,18 +28,18 @@ mod utils;
 mod vs {
     vulkano_shaders::shader! {
         ty: "vertex",
-        path:"src/shaders/test_vert.vert"
+        path:"src/shaders/test/test_vert.vert"
     }
 }
 
 mod fs {
     vulkano_shaders::shader! {
         ty: "fragment",
-        path:"src/shaders/test_frag.frag"
+        path:"src/shaders/test/test_frag.frag"
     }
 }
 
-pub fn window(library: Arc<VulkanLibrary>) {
+pub fn make_window(library: Arc<VulkanLibrary>, memory_allocater: &(impl MemoryAllocator + ?Sized)) {
     let WindowInitialized {
         physical_device,
         surface,
@@ -151,7 +152,7 @@ pub fn window(library: Arc<VulkanLibrary>) {
                 },
             ..
         } => {
-            println!("{position:?}");
+            // println!("{position:?}");
         }
         Event::WindowEvent {
             event: WindowEvent::Resized(_),
@@ -161,7 +162,7 @@ pub fn window(library: Arc<VulkanLibrary>) {
         }
         Event::RedrawEventsCleared => {
             if recreate_swapchain {
-                println!("recreating swapchain (slow)");
+                // println!("recreating swapchain (slow)");
                 recreate_swapchain = false;
 
                 let new_dimensions = window.inner_size();
@@ -266,7 +267,8 @@ pub fn window(library: Arc<VulkanLibrary>) {
             }
             sum_time /= 60f64;
             let fps = 1f64 / sum_time + 0.5;
-            println!("{fps:.0?}");
+            print!("\rFPS: {fps:.0?}   ");
+			sand::tick(&memory_allocator);
         }
         _ => (),
     });

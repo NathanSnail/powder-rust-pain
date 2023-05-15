@@ -7,6 +7,7 @@ mod deploy_shader;
 mod gpu_constructor;
 mod window;
 mod pass_structs;
+mod simulation;
 
 #[derive(BufferContents)]
 #[repr(C)]
@@ -68,7 +69,7 @@ fn main() {
     mod cs {
         vulkano_shaders::shader! {
             ty: "compute",
-            path: "src/shaders/test.frag",
+            path: "src/shaders/test/test.frag",
         }
     }
 
@@ -82,11 +83,6 @@ fn main() {
         // println!("{val}");
     }
 
-    window::window(library);
-
-    // println!("{binding:?}");
-    // let content = binding.iter();
-    // for i in content {
-    //     println!("{i}");
-    // }
+    window::make_window(library,&memory_allocator);
+	//main.rs is done now as window now has control
 }
