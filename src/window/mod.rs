@@ -3,9 +3,12 @@ use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage};
 
+use vulkano::device::{Device, Queue};
 use vulkano::image::ImageUsage;
 
-use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator, MemoryAllocator};
+use vulkano::memory::allocator::{
+    AllocationCreateInfo, MemoryAllocator, MemoryUsage, StandardMemoryAllocator, GenericMemoryAllocator,
+};
 
 use vulkano::pipeline::graphics::viewport::Viewport;
 use vulkano::swapchain::{
@@ -39,33 +42,38 @@ mod fs {
     }
 }
 
-pub fn make_window(library: Arc<VulkanLibrary>, memory_allocater: &(impl MemoryAllocator + ?Sized)) {
+pub fn make_window(
+    library: Arc<VulkanLibrary>,
+    compute_memory_allocator: &'static GenericMemoryAllocator<std::sync::Arc<vulkano::memory::allocator::FreeListAllocator>>,
+    compute_device: Arc<Device>,
+    compute_queue: Arc<Queue>,
+) {
     let WindowInitialized {
-        physical_device,
+        physical_device: render_physical_device,
         surface,
-        device,
+        device: render_device,
         window,
         mut window_size,
         event_loop,
-        queue,
+        queue: render_queue,
     } = init::initialize_window(&library);
 
     let (mut swapchain, images) = {
-        let caps = physical_device
+        let caps = render_physical_device
             .surface_capabilities(&surface, Default::default())
             .expect("failed to get surface capabilities");
 
         let dimensions = window.inner_size();
         let composite_alpha = caps.supported_composite_alpha.into_iter().next().unwrap();
         let image_format = Some(
-            physical_device
+            render_physical_device
                 .surface_formats(&surface, Default::default())
                 .unwrap()[0]
                 .0,
         );
 
         Swapchain::new(
-            device.clone(),
+            render_device.clone(),
             surface,
             SwapchainCreateInfo {
                 min_image_count: caps.min_image_count,
@@ -79,10 +87,10 @@ pub fn make_window(library: Arc<VulkanLibrary>, memory_allocater: &(impl MemoryA
         .unwrap()
     };
 
-    let render_pass = utils::get_render_pass(device.clone(), swapchain.clone());
-    let framebuffers = utils::get_framebuffers(&images, render_pass.clone());
+    let render_pass = utils::get_render_pass(render_device.clone(), swapchain.clone());
+    let frame_buffers = utils::get_framebuffers(&images, render_pass.clone());
 
-    let memory_allocator = StandardMemoryAllocator::new_default(device.clone());
+    let render_memory_allocator = StandardMemoryAllocator::new_default(render_device.clone());
 
     let vertex1 = utils::CPUVertex {
         position: [-0.5, -0.5],
@@ -94,7 +102,7 @@ pub fn make_window(library: Arc<VulkanLibrary>, memory_allocater: &(impl MemoryA
         position: [0.5, -0.25],
     };
     let vertex_buffer = Buffer::from_iter(
-        &memory_allocator,
+        &render_memory_allocator,
         BufferCreateInfo {
             usage: BufferUsage::VERTEX_BUFFER,
             ..Default::default()
@@ -107,8 +115,8 @@ pub fn make_window(library: Arc<VulkanLibrary>, memory_allocater: &(impl MemoryA
     )
     .unwrap();
 
-    let vs = vs::load(device.clone()).expect("failed to create shader module");
-    let fs = fs::load(device.clone()).expect("failed to create shader module");
+    let vs = vs::load(render_device.clone()).expect("failed to create shader module");
+    let fs = fs::load(render_device.clone()).expect("failed to create shader module");
 
     let mut viewport = Viewport {
         origin: [0.0, 0.0],
@@ -122,15 +130,20 @@ pub fn make_window(library: Arc<VulkanLibrary>, memory_allocater: &(impl MemoryA
     let mut previous_fence_i = 0;
 
     let pipeline = utils::get_pipeline(
-        device.clone(),
+        render_device.clone(),
         vs.clone(),
         fs.clone(),
         render_pass.clone(),
         viewport.clone(),
     );
 
-    let mut command_buffers =
-        utils::get_command_buffers(&device, &queue, &pipeline, &framebuffers, &vertex_buffer);
+    let mut command_buffers = utils::get_command_buffers(
+        &render_device,
+        &render_queue,
+        &pipeline,
+        &frame_buffers,
+        &vertex_buffer,
+    );
 
     //fps
     let mut frames = [0f64; 60];
@@ -147,7 +160,7 @@ pub fn make_window(library: Arc<VulkanLibrary>, memory_allocater: &(impl MemoryA
             event:
                 WindowEvent::CursorMoved {
                     device_id: _,
-                    position,
+                    position: _,
                     ..
                 },
             ..
@@ -183,15 +196,15 @@ pub fn make_window(library: Arc<VulkanLibrary>, memory_allocater: &(impl MemoryA
                 let new_framebuffers = utils::get_framebuffers(&new_images, render_pass.clone());
                 viewport.dimensions = window_size.into();
                 let new_pipeline = utils::get_pipeline(
-                    device.clone(),
+                    render_device.clone(),
                     vs.clone(),
                     fs.clone(),
                     render_pass.clone(),
                     viewport.clone(),
                 );
                 command_buffers = utils::get_command_buffers(
-                    &device,
-                    &queue,
+                    &render_device,
+                    &render_queue,
                     &new_pipeline,
                     &new_framebuffers,
                     &vertex_buffer,
@@ -219,7 +232,7 @@ pub fn make_window(library: Arc<VulkanLibrary>, memory_allocater: &(impl MemoryA
             let previous_future = match fences[previous_fence_i as usize].clone() {
                 // Create a NowFuture
                 None => {
-                    let mut now = sync::now(device.clone());
+                    let mut now = sync::now(render_device.clone());
                     now.cleanup_finished();
 
                     now.boxed()
@@ -230,10 +243,13 @@ pub fn make_window(library: Arc<VulkanLibrary>, memory_allocater: &(impl MemoryA
 
             let future = previous_future
                 .join(acquire_future)
-                .then_execute(queue.clone(), command_buffers[image_i as usize].clone())
+                .then_execute(
+                    render_queue.clone(),
+                    command_buffers[image_i as usize].clone(),
+                )
                 .unwrap()
                 .then_swapchain_present(
-                    queue.clone(),
+                    render_queue.clone(),
                     SwapchainPresentInfo::swapchain_image_index(swapchain.clone(), image_i),
                 )
                 .then_signal_fence_and_flush();
@@ -268,7 +284,11 @@ pub fn make_window(library: Arc<VulkanLibrary>, memory_allocater: &(impl MemoryA
             sum_time /= 60f64;
             let fps = 1f64 / sum_time + 0.5;
             print!("\rFPS: {fps:.0?}   ");
-			sand::tick(&memory_allocator);
+            sand::tick(
+                &compute_memory_allocator,
+                &compute_device.clone(),
+                &compute_queue.clone(),
+            );
         }
         _ => (),
     });

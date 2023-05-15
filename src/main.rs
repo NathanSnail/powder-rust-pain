@@ -1,13 +1,15 @@
 use vulkano::buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage};
 
-use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator};
+use vulkano::memory::allocator::{
+    AllocationCreateInfo, GenericMemoryAllocator, MemoryUsage, StandardMemoryAllocator,
+};
 use vulkano::sync::{self};
 
 mod deploy_shader;
 mod gpu_constructor;
-mod window;
 mod pass_structs;
 mod simulation;
+mod window;
 
 #[derive(BufferContents)]
 #[repr(C)]
@@ -31,7 +33,9 @@ fn main() {
     //     device.clone(),
     //     StandardCommandBufferAllocatorCreateInfo::default(),
     // );
-    let memory_allocator = StandardMemoryAllocator::new_default(device.clone());
+    static memory_allocator: &GenericMemoryAllocator<
+        std::sync::Arc<vulkano::memory::allocator::FreeListAllocator>,
+    > = &StandardMemoryAllocator::new_default(device.clone());
 
     // let data: TestStruct = TestStruct {
     //     first: 5,
@@ -52,7 +56,7 @@ fn main() {
 
     let data2 = 0..64; //staging, gpu 1, gpu 2, download
     let buffer = Buffer::from_iter(
-        &memory_allocator,
+        memory_allocator,
         BufferCreateInfo {
             usage: BufferUsage::STORAGE_BUFFER,
             ..Default::default()
@@ -75,7 +79,7 @@ fn main() {
 
     let shader = cs::load(device.clone()).expect("failed to create shader module");
 
-    let future = deploy_shader::deploy(shader, device, queue, &buffer, [1, 1, 1]);
+    let future = deploy_shader::deploy(shader, device.clone(), queue.clone(), &buffer, [1, 1, 1]);
 
     future.wait(None).unwrap();
     let binding = buffer.read().unwrap();
@@ -83,6 +87,6 @@ fn main() {
         // println!("{val}");
     }
 
-    window::make_window(library,&memory_allocator);
-	//main.rs is done now as window now has control
+    window::make_window(library, memory_allocator, device, queue);
+    //main.rs is done now as window now has control
 }

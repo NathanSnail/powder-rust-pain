@@ -14,11 +14,11 @@ use vulkano::pipeline::{ComputePipeline, Pipeline, PipelineBindPoint};
 use vulkano::shader::ShaderModule;
 use vulkano::sync::{self, GpuFuture};
 
-pub fn deploy(
+pub fn deploy<T>(
     shader: Arc<ShaderModule>,
     device: Arc<Device>,
     queue: Arc<Queue>,
-    buffer: &Subbuffer<[i32]>,
+    buffer: &Subbuffer<[T]>,
     work_group_counts: [u32; 3],
 ) -> FenceSignalFuture<CommandBufferExecFuture<NowFuture>> {
     let compute_pipeline = ComputePipeline::new(
