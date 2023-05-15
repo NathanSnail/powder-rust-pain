@@ -42,6 +42,8 @@ mod fs {
     }
 }
 
+const FPS_DISPLAY: bool = false;
+
 pub fn make_window(
     library: Arc<VulkanLibrary>,
     compute_memory_allocator: GenericMemoryAllocator<std::sync::Arc<vulkano::memory::allocator::FreeListAllocator>>,
@@ -284,7 +286,10 @@ pub fn make_window(
             }
             sum_time /= 60f64;
             let fps = 1f64 / sum_time + 0.5;
-            print!("\rFPS: {fps:.0?}   ");
+			if FPS_DISPLAY
+			{
+				print!("\rFPS: {fps:.0?}   ");
+			}
             world = sand::tick(
                 &compute_memory_allocator,
                 &compute_device.clone(),

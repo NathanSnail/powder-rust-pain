@@ -25,7 +25,7 @@ struct TestStruct {
 
 fn main() {
     let mut world: Vec<Material> = Vec::new();
-    for i in 1..100 {
+    for i in 1..64 {
         let i_f = i as f32;
         world.push(Material {
             id: i,

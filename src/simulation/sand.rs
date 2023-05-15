@@ -1,4 +1,3 @@
-
 use std::sync::Arc;
 
 use vulkano::buffer::Subbuffer;
@@ -11,7 +10,6 @@ use vulkano::memory::allocator::{
     AllocationCreateInfo, GenericMemoryAllocator, MemoryAllocator, MemoryUsage,
 };
 
-
 mod sand_shader {
     vulkano_shaders::shader! {
         ty: "compute",
@@ -20,10 +18,12 @@ mod sand_shader {
 }
 
 pub fn tick(
-    memory_allocator: &GenericMemoryAllocator<std::sync::Arc<vulkano::memory::allocator::FreeListAllocator>>,
+    memory_allocator: &GenericMemoryAllocator<
+        std::sync::Arc<vulkano::memory::allocator::FreeListAllocator>,
+    >,
     device: &Arc<Device>,
     queue: &Arc<Queue>,
-	world: &[Material],
+    world: &[Material],
 ) -> Vec<Material> {
     let buffer = upload_buffer(world.to_owned(), memory_allocator);
     let future = deploy_shader::deploy(
@@ -33,13 +33,17 @@ pub fn tick(
         &buffer,
         [1, 1, 1],
     );
-	future.wait(None).unwrap();
+    future.wait(None).unwrap();
     let binding = buffer.read().unwrap();
-	let mut new: Vec<Material> = Vec::new();
-    for val in binding.iter() {
+    let mut new: Vec<Material> = Vec::new();
+    for (key, val) in binding.iter().enumerate() {
+        if key == 0 {
+            let id = val.id;
+            println!("{id:?}");
+        }
         new.push(val.clone());
     }
-	new
+    new
 }
 
 pub fn upload_buffer(
