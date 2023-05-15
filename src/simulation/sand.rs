@@ -1,17 +1,16 @@
-use std::collections::btree_map::Iter;
+
 use std::sync::Arc;
 
 use vulkano::buffer::Subbuffer;
-use vulkano::buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage};
+use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage};
 use vulkano::device::{Device, Queue};
 
 use crate::deploy_shader;
 use crate::pass_structs::Material;
 use vulkano::memory::allocator::{
-    AllocationCreateInfo, FreeListAllocator, GenericMemoryAllocator, MemoryAllocator, MemoryUsage,
-    StandardMemoryAllocator,
+    AllocationCreateInfo, GenericMemoryAllocator, MemoryAllocator, MemoryUsage,
 };
-use vulkano::sync::{self};
+
 
 mod sand_shader {
     vulkano_shaders::shader! {

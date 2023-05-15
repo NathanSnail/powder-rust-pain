@@ -1,4 +1,4 @@
-use std::mem::swap;
+
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage};
@@ -7,7 +7,7 @@ use vulkano::device::{Device, Queue};
 use vulkano::image::ImageUsage;
 
 use vulkano::memory::allocator::{
-    AllocationCreateInfo, MemoryAllocator, MemoryUsage, StandardMemoryAllocator, GenericMemoryAllocator,
+    AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator, GenericMemoryAllocator,
 };
 
 use vulkano::pipeline::graphics::viewport::Viewport;

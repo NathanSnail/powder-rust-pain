@@ -5,8 +5,8 @@ use vulkano::device::physical::PhysicalDevice;
 use vulkano::device::Device;
 use vulkano::device::Queue;
 
-use glam::{Vec2, Vec3};
-use vulkano::pipeline::graphics::vertex_input::Vertex;
+
+
 use vulkano::swapchain::Surface;
 use winit::dpi::PhysicalSize;
 use winit::event_loop::EventLoop;
