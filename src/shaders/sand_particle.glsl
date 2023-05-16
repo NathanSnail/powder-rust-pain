@@ -10,7 +10,7 @@ struct Material{
 	float force;
 	float stable;
 	uint tags;
-	bool gas;
+	uint gas;
 };
 
 layout(local_size_x=64,local_size_y=1,local_size_z=1)in;
@@ -21,5 +21,6 @@ layout(binding = 0) buffer Data {
 
 void main(){
 	uint idx=gl_GlobalInvocationID.x;
-	buf.mat[idx].id*=12;
+	buf.mat[idx].colour.r += 0.1; 
+	// buf.mat[idx].colour+=vec3(0.1);
 }

@@ -38,8 +38,8 @@ pub fn tick(
     let mut new: Vec<Material> = Vec::new();
     for (key, val) in binding.iter().enumerate() {
         if key == 0 {
-            let id = val.id;
-            println!("{id:?}");
+            // let out = val.pos;
+            println!("{val:?}");
         }
         new.push(val.clone());
     }

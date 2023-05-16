@@ -22,13 +22,14 @@ pub struct WindowInitialized {
 }
 
 #[repr(C)]
-#[derive(BufferContents,Clone)]
-pub struct Material {
+#[derive(BufferContents,Clone,Debug)]
+pub struct Material { // MUST BE KEPT IN SYNC WITH GLSL VERSION
     pub id: u32,
+	pub _pad: u64, // misalignment dirty fix
     pub colour: [f32; 3], // made using id normally except it can also change
     pub pos: [f32; 2],
     pub vel: [f32; 2],
-    pub mass: f32,        // made using id
+	pub mass: f32,        // made using id
     pub target: [f32; 2], // ^ for statics
     pub force: f32,       // ^ how much force towards target is left?
     pub stable: f32,      // ^ how much displacement is the maximum before force weakens?
@@ -40,6 +41,7 @@ impl Default for Material {
     fn default() -> Material {
         Material {
             id: 0,
+			_pad:0,
             colour: [1f32, 0f32, 1f32],
             pos: [0f32, 0f32],
             vel: [0f32, 0f32],
