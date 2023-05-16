@@ -21,6 +21,6 @@ layout(binding = 0) buffer Data {
 
 void main(){
 	uint idx=gl_GlobalInvocationID.x;
-	buf.mat[idx].colour.r += 0.1; 
+	buf.mat[idx].tags += 1; 
 	// buf.mat[idx].colour+=vec3(0.1);
 }
