@@ -1,4 +1,3 @@
-
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage};
@@ -7,7 +6,7 @@ use vulkano::device::{Device, Queue};
 use vulkano::image::ImageUsage;
 
 use vulkano::memory::allocator::{
-    AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator, GenericMemoryAllocator,
+    AllocationCreateInfo, GenericMemoryAllocator, MemoryUsage, StandardMemoryAllocator,
 };
 
 use vulkano::pipeline::graphics::viewport::Viewport;
@@ -22,9 +21,10 @@ use vulkano::sync::{self, FlushError, GpuFuture};
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::ControlFlow;
 
-use crate::pass_structs::{WindowInitialized, Material};
+use crate::pass_structs::{Material, WindowInitialized};
 use crate::simulation::sand;
 
+mod fps;
 mod init;
 mod utils;
 
@@ -42,14 +42,16 @@ mod fs {
     }
 }
 
-const FPS_DISPLAY: bool = false;
+const FPS_DISPLAY: bool = true;
 
 pub fn make_window(
     library: Arc<VulkanLibrary>,
-    compute_memory_allocator: GenericMemoryAllocator<std::sync::Arc<vulkano::memory::allocator::FreeListAllocator>>,
+    compute_memory_allocator: GenericMemoryAllocator<
+        std::sync::Arc<vulkano::memory::allocator::FreeListAllocator>,
+    >,
     compute_device: Arc<Device>,
     compute_queue: Arc<Queue>,
-	mut world: Vec<Material>,
+    mut world: Vec<Material>,
 ) {
     let WindowInitialized {
         physical_device: render_physical_device,
@@ -152,6 +154,9 @@ pub fn make_window(
     let mut frames = [0f64; 60];
     let mut cur_frame = 0;
     let mut time = 0f64;
+    // let frames_r = &mut frames; winit static garbo or smth, idk why this does not work.
+    // let cur_frame_r = &mut cur_frame;
+    // let time_r = &mut time;
     event_loop.run(move |event, _, control_flow| match event {
         Event::WindowEvent {
             event: WindowEvent::CloseRequested,
@@ -269,32 +274,14 @@ pub fn make_window(
                 }
             };
             previous_fence_i = image_i;
-
-            cur_frame += 1;
-            cur_frame %= 60;
-            let start = SystemTime::now();
-            let since_the_epoch = start
-                .duration_since(UNIX_EPOCH)
-                .expect("time went backwards")
-                .as_millis() as f64;
-            // println!("{since_the_epoch:?}");
-            frames[cur_frame] = since_the_epoch / 1000f64 - time;
-            time = since_the_epoch / 1000f64;
-            let mut sum_time = 0f64;
-            for frame_time in frames.iter() {
-                sum_time += frame_time;
+            if FPS_DISPLAY {
+                fps::do_fps(&mut frames, &mut cur_frame, &mut time);
             }
-            sum_time /= 60f64;
-            let fps = 1f64 / sum_time + 0.5;
-			if FPS_DISPLAY
-			{
-				print!("\rFPS: {fps:.0?}   ");
-			}
             world = sand::tick(
                 &compute_memory_allocator,
                 &compute_device.clone(),
                 &compute_queue.clone(),
-				&world,
+                &world,
             );
         }
         _ => (),
