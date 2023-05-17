@@ -1,12 +1,15 @@
 use crate::window::Arc;
 use vulkano::buffer::{BufferContents, Subbuffer};
-use vulkano::command_buffer::{PrimaryAutoCommandBuffer, AutoCommandBufferBuilder, CommandBufferUsage, RenderPassBeginInfo, SubpassContents};
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
+use vulkano::command_buffer::{
+    AutoCommandBufferBuilder, CommandBufferUsage, PrimaryAutoCommandBuffer, RenderPassBeginInfo,
+    SubpassContents,
+};
 
 use vulkano::device::{Device, Queue};
 use vulkano::image::{view::ImageView, SwapchainImage};
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
-use vulkano::pipeline::graphics::vertex_input::{Vertex};
+use vulkano::pipeline::graphics::vertex_input::Vertex;
 use vulkano::pipeline::graphics::viewport::{Viewport, ViewportState};
 use vulkano::pipeline::GraphicsPipeline;
 use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass};
@@ -84,7 +87,7 @@ pub fn get_command_buffers(
     framebuffers: &[Arc<Framebuffer>],
     vertex_buffer: &Subbuffer<[CPUVertex]>,
 ) -> Vec<Arc<PrimaryAutoCommandBuffer>> {
-	let command_buffer_allocator =
+    let command_buffer_allocator =
         StandardCommandBufferAllocator::new(device.clone(), Default::default());
     framebuffers
         .iter()

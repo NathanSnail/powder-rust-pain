@@ -98,14 +98,17 @@ pub fn make_window(
     let render_memory_allocator = StandardMemoryAllocator::new_default(render_device.clone());
 
     let vertex1 = utils::CPUVertex {
-        position: [-0.5, -0.5],
+        position: [-1.0, -1.0],
     };
     let vertex2 = utils::CPUVertex {
-        position: [0.0, 0.5],
+        position: [3.0, -1.0], // 3 because -1 -> 1 => width = 2, 1 + 2 = 3
     };
     let vertex3 = utils::CPUVertex {
-        position: [0.5, -0.25],
+        position: [-1.0, 3.0],
     };
+    // let vertex4 = utils::CPUVertex {
+    //     position: [0.5, 0.5],
+    // }; Clipping makes this useless, see https://www.saschawillems.de/blog/2016/08/13/vulkan-tutorial-on-rendering-a-fullscreen-quad-without-buffers/
     let vertex_buffer = Buffer::from_iter(
         &render_memory_allocator,
         BufferCreateInfo {
@@ -117,6 +120,19 @@ pub fn make_window(
             ..Default::default()
         },
         vec![vertex1, vertex2, vertex3],
+    )
+    .unwrap();
+    let screen_size_buffer = Buffer::from_data(
+        &render_memory_allocator,
+        BufferCreateInfo {
+            usage: BufferUsage::STORAGE_BUFFER,
+            ..Default::default()
+        },
+        AllocationCreateInfo {
+            usage: MemoryUsage::Upload,
+            ..Default::default()
+        },
+        [window_size.width, window_size.height],
     )
     .unwrap();
 

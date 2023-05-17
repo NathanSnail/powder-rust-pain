@@ -37,7 +37,7 @@ pub fn tick(
     let binding = buffer.read().unwrap();
     let mut new: Vec<Material> = Vec::new();
     for (key, val) in binding.iter().enumerate() {
-        if key == 0 {
+        if key <= 1 {
             // let out = val.pos;
             println!("{val:?}");
         }
