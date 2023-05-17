@@ -6,12 +6,13 @@ use vulkano::command_buffer::{
     SubpassContents,
 };
 
+use vulkano::descriptor_set;
 use vulkano::device::{Device, Queue};
 use vulkano::image::{view::ImageView, SwapchainImage};
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
 use vulkano::pipeline::graphics::vertex_input::Vertex;
 use vulkano::pipeline::graphics::viewport::{Viewport, ViewportState};
-use vulkano::pipeline::GraphicsPipeline;
+use vulkano::pipeline::{GraphicsPipeline, Pipeline, PipelineBindPoint};
 use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass};
 use vulkano::shader::ShaderModule;
 use vulkano::swapchain::Swapchain;
@@ -84,38 +85,66 @@ pub fn get_command_buffers(
     device: &Arc<Device>,
     queue: &Arc<Queue>,
     pipeline: &Arc<GraphicsPipeline>,
-    framebuffers: &[Arc<Framebuffer>],
+    frame_buffers: &[Arc<Framebuffer>],
     vertex_buffer: &Subbuffer<[CPUVertex]>,
+    descriptor_bind_index: u32,
+    descriptor_sets: vulkano::descriptor_set::DescriptorSetWithOffsets,
 ) -> Vec<Arc<PrimaryAutoCommandBuffer>> {
     let command_buffer_allocator =
         StandardCommandBufferAllocator::new(device.clone(), Default::default());
-    framebuffers
+    frame_buffers
         .iter()
-        .map(|framebuffer| {
-            let mut builder = AutoCommandBufferBuilder::primary(
+        .map(|frame_buffer| {
+            build_render_pass(
+                frame_buffer,
+                queue,
+                pipeline,
+                vertex_buffer,
                 &command_buffer_allocator,
-                queue.queue_family_index(),
-                CommandBufferUsage::MultipleSubmit,
+                descriptor_bind_index,
+                descriptor_sets.clone(),
             )
-            .unwrap();
-
-            builder
-                .begin_render_pass(
-                    RenderPassBeginInfo {
-                        clear_values: vec![Some([0.0, 0.0, 1.0, 1.0].into())],
-                        ..RenderPassBeginInfo::framebuffer(framebuffer.clone())
-                    },
-                    SubpassContents::Inline,
-                )
-                .unwrap()
-                .bind_pipeline_graphics(pipeline.clone())
-                .bind_vertex_buffers(0, vertex_buffer.clone())
-                .draw(vertex_buffer.len() as u32, 1, 0, 0)
-                .unwrap()
-                .end_render_pass()
-                .unwrap();
-
-            Arc::new(builder.build().unwrap())
         })
         .collect()
+}
+
+fn build_render_pass(
+    frame_buffer: &Arc<Framebuffer>,
+    queue: &Arc<Queue>,
+    pipeline: &Arc<GraphicsPipeline>,
+    vertex_buffer: &Subbuffer<[CPUVertex]>,
+    command_buffer_allocator: &StandardCommandBufferAllocator,
+    descriptor_bind_index: u32,
+    descriptor_sets: vulkano::descriptor_set::DescriptorSetWithOffsets,
+) -> Arc<PrimaryAutoCommandBuffer> {
+    let mut builder = AutoCommandBufferBuilder::primary(
+        command_buffer_allocator,
+        queue.queue_family_index(),
+        CommandBufferUsage::MultipleSubmit,
+    )
+    .unwrap();
+
+    builder
+        .begin_render_pass(
+            RenderPassBeginInfo {
+                clear_values: vec![Some([1.0, 0.0, 1.0, 1.0].into())],
+                ..RenderPassBeginInfo::framebuffer(frame_buffer.clone())
+            },
+            SubpassContents::Inline,
+        )
+        .unwrap()
+        .bind_pipeline_graphics(pipeline.clone())
+        .bind_descriptor_sets(
+            PipelineBindPoint::Graphics,
+            pipeline.layout().clone(),
+            descriptor_bind_index,
+            descriptor_sets,
+        )
+        .bind_vertex_buffers(0, vertex_buffer.clone())
+        .draw(vertex_buffer.len() as u32, 1, 0, 0)
+        .unwrap()
+        .end_render_pass()
+        .unwrap();
+
+    Arc::new(builder.build().unwrap())
 }

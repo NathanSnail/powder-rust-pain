@@ -2,6 +2,8 @@ use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage};
 
+use vulkano::descriptor_set::allocator::{DescriptorSetAllocator, StandardDescriptorSetAllocator};
+use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::device::{Device, Queue};
 use vulkano::image::ImageUsage;
 
@@ -10,6 +12,7 @@ use vulkano::memory::allocator::{
 };
 
 use vulkano::pipeline::graphics::viewport::Viewport;
+use vulkano::pipeline::Pipeline;
 use vulkano::swapchain::{
     acquire_next_image, Swapchain, SwapchainCreationError, SwapchainPresentInfo,
 };
@@ -122,19 +125,6 @@ pub fn make_window(
         vec![vertex1, vertex2, vertex3],
     )
     .unwrap();
-    let screen_size_buffer = Buffer::from_data(
-        &render_memory_allocator,
-        BufferCreateInfo {
-            usage: BufferUsage::STORAGE_BUFFER,
-            ..Default::default()
-        },
-        AllocationCreateInfo {
-            usage: MemoryUsage::Upload,
-            ..Default::default()
-        },
-        [window_size.width, window_size.height],
-    )
-    .unwrap();
 
     let vs = vs::load(render_device.clone()).expect("failed to create shader module");
     let fs = fs::load(render_device.clone()).expect("failed to create shader module");
@@ -150,20 +140,54 @@ pub fn make_window(
     let mut fences: Vec<Option<Arc<FenceSignalFuture<_>>>> = vec![None; frames_in_flight];
     let mut previous_fence_i = 0;
 
-    let pipeline = utils::get_pipeline(
+    let render_pipeline = utils::get_pipeline(
         render_device.clone(),
         vs.clone(),
         fs.clone(),
         render_pass.clone(),
         viewport.clone(),
     );
+    // render buffer stuff
+    let render_buffer = Buffer::from_data(
+        &render_memory_allocator,
+        BufferCreateInfo {
+            usage: BufferUsage::STORAGE_BUFFER,
+            ..Default::default()
+        },
+        AllocationCreateInfo {
+            usage: MemoryUsage::Upload,
+            ..Default::default()
+        },
+        [window_size.width, window_size.height],
+    )
+    .unwrap();
+
+    let render_descriptor_set_allocator =
+        StandardDescriptorSetAllocator::new(render_device.clone());
+
+    let descriptor_set_layouts = render_pipeline.layout().set_layouts();
+    let descriptor_set_layout_index = 0;
+    let descriptor_set_layout = descriptor_set_layouts
+        .get(descriptor_set_layout_index)
+        .unwrap();
+
+    let descriptor_set = match PersistentDescriptorSet::new(
+        &render_descriptor_set_allocator,
+        descriptor_set_layout.clone(),
+        [WriteDescriptorSet::buffer(0, render_buffer.clone())], // 0 is the binding
+    ) {
+        Ok(res) => res,
+        Err(e) => panic!("Error with {e:?}"),
+    };
 
     let mut command_buffers = utils::get_command_buffers(
         &render_device,
         &render_queue,
-        &pipeline,
+        &render_pipeline,
         &frame_buffers,
         &vertex_buffer,
+        descriptor_set_layout_index as u32,
+        descriptor_set.into(),
     );
 
     //fps
@@ -226,12 +250,47 @@ pub fn make_window(
                     render_pass.clone(),
                     viewport.clone(),
                 );
-                command_buffers = utils::get_command_buffers(
+                // render buffer stuff
+                let render_buffer = Buffer::from_data(
+                    &render_memory_allocator,
+                    BufferCreateInfo {
+                        usage: BufferUsage::STORAGE_BUFFER,
+                        ..Default::default()
+                    },
+                    AllocationCreateInfo {
+                        usage: MemoryUsage::Upload,
+                        ..Default::default()
+                    },
+                    [window_size.width, window_size.height],
+                )
+                .unwrap();
+
+                let render_descriptor_set_allocator =
+                    StandardDescriptorSetAllocator::new(render_device.clone());
+
+                let descriptor_set_layouts = render_pipeline.layout().set_layouts();
+                let descriptor_set_layout_index = 0;
+                let descriptor_set_layout = descriptor_set_layouts
+                    .get(descriptor_set_layout_index)
+                    .unwrap();
+
+                let descriptor_set = match PersistentDescriptorSet::new(
+                    &render_descriptor_set_allocator,
+                    descriptor_set_layout.clone(),
+                    [WriteDescriptorSet::buffer(0, render_buffer.clone())], // 0 is the binding
+                ) {
+                    Ok(res) => res,
+                    Err(e) => panic!("Error with {e:?}"),
+                };
+
+                let mut command_buffers = utils::get_command_buffers(
                     &render_device,
                     &render_queue,
-                    &new_pipeline,
-                    &new_framebuffers,
+                    &render_pipeline,
+                    &frame_buffers,
                     &vertex_buffer,
+                    descriptor_set_layout_index as u32,
+                    descriptor_set.into(),
                 );
             }
 
