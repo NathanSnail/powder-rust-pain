@@ -3,9 +3,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage};
 
 use vulkano::descriptor_set::allocator::{DescriptorSetAllocator, StandardDescriptorSetAllocator};
-use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
+use vulkano::descriptor_set::{self, PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::device::{Device, Queue};
-use vulkano::image::ImageUsage;
 
 use vulkano::memory::allocator::{
     AllocationCreateInfo, GenericMemoryAllocator, MemoryUsage, StandardMemoryAllocator,
@@ -66,35 +65,12 @@ pub fn make_window(
         queue: render_queue,
     } = init::initialize_window(&library);
 
-    let (mut swapchain, images) = {
-        let caps = render_physical_device
-            .surface_capabilities(&surface, Default::default())
-            .expect("failed to get surface capabilities");
-
-        let dimensions = window.inner_size();
-        let composite_alpha = caps.supported_composite_alpha.into_iter().next().unwrap();
-        let image_format = Some(
-            render_physical_device
-                .surface_formats(&surface, Default::default())
-                .unwrap()[0]
-                .0,
-        );
-
-        Swapchain::new(
-            render_device.clone(),
-            surface,
-            SwapchainCreateInfo {
-                min_image_count: caps.min_image_count,
-                image_format,
-                image_extent: dimensions.into(),
-                image_usage: ImageUsage::COLOR_ATTACHMENT,
-                composite_alpha,
-                ..Default::default()
-            },
-        )
-        .unwrap()
-    };
-
+    let (mut swapchain, mut images) = utils::get_swapchain(
+        &render_physical_device,
+        &render_device,
+        &window,
+        surface.clone(),
+    );
     let render_pass = utils::get_render_pass(render_device.clone(), swapchain.clone());
     let frame_buffers = utils::get_framebuffers(&images, render_pass.clone());
 
@@ -147,47 +123,13 @@ pub fn make_window(
         render_pass.clone(),
         viewport.clone(),
     );
-    // render buffer stuff
-    let render_buffer = Buffer::from_data(
-        &render_memory_allocator,
-        BufferCreateInfo {
-            usage: BufferUsage::STORAGE_BUFFER,
-            ..Default::default()
-        },
-        AllocationCreateInfo {
-            usage: MemoryUsage::Upload,
-            ..Default::default()
-        },
-        [window_size.width, window_size.height],
-    )
-    .unwrap();
 
-    let render_descriptor_set_allocator =
-        StandardDescriptorSetAllocator::new(render_device.clone());
-
-    let descriptor_set_layouts = render_pipeline.layout().set_layouts();
-    let descriptor_set_layout_index = 0;
-    let descriptor_set_layout = descriptor_set_layouts
-        .get(descriptor_set_layout_index)
-        .unwrap();
-
-    let descriptor_set = match PersistentDescriptorSet::new(
-        &render_descriptor_set_allocator,
-        descriptor_set_layout.clone(),
-        [WriteDescriptorSet::buffer(0, render_buffer.clone())], // 0 is the binding
-    ) {
-        Ok(res) => res,
-        Err(e) => panic!("Error with {e:?}"),
-    };
-
-    let mut command_buffers = utils::get_command_buffers(
+    let command_buffers = utils::get_command_buffers(
         &render_device,
         &render_queue,
         &render_pipeline,
         &frame_buffers,
         &vertex_buffer,
-        descriptor_set_layout_index as u32,
-        descriptor_set.into(),
     );
 
     //fps
@@ -240,58 +182,6 @@ pub fn make_window(
                     Err(e) => panic!("failed to recreate swapchain: {e}"),
                 };
                 swapchain = new_swapchain;
-
-                let new_framebuffers = utils::get_framebuffers(&new_images, render_pass.clone());
-                viewport.dimensions = window_size.into();
-                let new_pipeline = utils::get_pipeline(
-                    render_device.clone(),
-                    vs.clone(),
-                    fs.clone(),
-                    render_pass.clone(),
-                    viewport.clone(),
-                );
-                // render buffer stuff
-                let render_buffer = Buffer::from_data(
-                    &render_memory_allocator,
-                    BufferCreateInfo {
-                        usage: BufferUsage::STORAGE_BUFFER,
-                        ..Default::default()
-                    },
-                    AllocationCreateInfo {
-                        usage: MemoryUsage::Upload,
-                        ..Default::default()
-                    },
-                    [window_size.width, window_size.height],
-                )
-                .unwrap();
-
-                let render_descriptor_set_allocator =
-                    StandardDescriptorSetAllocator::new(render_device.clone());
-
-                let descriptor_set_layouts = render_pipeline.layout().set_layouts();
-                let descriptor_set_layout_index = 0;
-                let descriptor_set_layout = descriptor_set_layouts
-                    .get(descriptor_set_layout_index)
-                    .unwrap();
-
-                let descriptor_set = match PersistentDescriptorSet::new(
-                    &render_descriptor_set_allocator,
-                    descriptor_set_layout.clone(),
-                    [WriteDescriptorSet::buffer(0, render_buffer.clone())], // 0 is the binding
-                ) {
-                    Ok(res) => res,
-                    Err(e) => panic!("Error with {e:?}"),
-                };
-
-                let mut command_buffers = utils::get_command_buffers(
-                    &render_device,
-                    &render_queue,
-                    &render_pipeline,
-                    &frame_buffers,
-                    &vertex_buffer,
-                    descriptor_set_layout_index as u32,
-                    descriptor_set.into(),
-                );
             }
 
             let (image_i, suboptimal, acquire_future) =

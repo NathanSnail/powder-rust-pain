@@ -7,7 +7,9 @@ use vulkano::command_buffer::{
 };
 
 use vulkano::descriptor_set;
+use vulkano::device::physical::PhysicalDevice;
 use vulkano::device::{Device, Queue};
+use vulkano::image::ImageUsage;
 use vulkano::image::{view::ImageView, SwapchainImage};
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
 use vulkano::pipeline::graphics::vertex_input::Vertex;
@@ -15,7 +17,7 @@ use vulkano::pipeline::graphics::viewport::{Viewport, ViewportState};
 use vulkano::pipeline::{GraphicsPipeline, Pipeline, PipelineBindPoint};
 use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass};
 use vulkano::shader::ShaderModule;
-use vulkano::swapchain::Swapchain;
+use vulkano::swapchain::{Surface, Swapchain, SwapchainCreateInfo};
 
 #[derive(BufferContents, Vertex)]
 #[repr(C)]
@@ -87,8 +89,6 @@ pub fn get_command_buffers(
     pipeline: &Arc<GraphicsPipeline>,
     frame_buffers: &[Arc<Framebuffer>],
     vertex_buffer: &Subbuffer<[CPUVertex]>,
-    descriptor_bind_index: u32,
-    descriptor_sets: vulkano::descriptor_set::DescriptorSetWithOffsets,
 ) -> Vec<Arc<PrimaryAutoCommandBuffer>> {
     let command_buffer_allocator =
         StandardCommandBufferAllocator::new(device.clone(), Default::default());
@@ -101,8 +101,6 @@ pub fn get_command_buffers(
                 pipeline,
                 vertex_buffer,
                 &command_buffer_allocator,
-                descriptor_bind_index,
-                descriptor_sets.clone(),
             )
         })
         .collect()
@@ -114,8 +112,6 @@ fn build_render_pass(
     pipeline: &Arc<GraphicsPipeline>,
     vertex_buffer: &Subbuffer<[CPUVertex]>,
     command_buffer_allocator: &StandardCommandBufferAllocator,
-    descriptor_bind_index: u32,
-    descriptor_sets: vulkano::descriptor_set::DescriptorSetWithOffsets,
 ) -> Arc<PrimaryAutoCommandBuffer> {
     let mut builder = AutoCommandBufferBuilder::primary(
         command_buffer_allocator,
@@ -134,12 +130,6 @@ fn build_render_pass(
         )
         .unwrap()
         .bind_pipeline_graphics(pipeline.clone())
-        .bind_descriptor_sets(
-            PipelineBindPoint::Graphics,
-            pipeline.layout().clone(),
-            descriptor_bind_index,
-            descriptor_sets,
-        )
         .bind_vertex_buffers(0, vertex_buffer.clone())
         .draw(vertex_buffer.len() as u32, 1, 0, 0)
         .unwrap()
@@ -147,4 +137,41 @@ fn build_render_pass(
         .unwrap();
 
     Arc::new(builder.build().unwrap())
+}
+
+pub fn get_swapchain(
+    render_physical_device: &Arc<PhysicalDevice>,
+    render_device: &Arc<Device>,
+    window: &std::sync::Arc<winit::window::Window>,
+    surface: Arc<Surface>,
+) -> (Arc<Swapchain>, Vec<Arc<SwapchainImage>>) {
+    let (swapchain, images) = {
+        let caps = render_physical_device
+            .surface_capabilities(&surface, Default::default())
+            .expect("failed to get surface capabilities");
+
+        let dimensions = window.inner_size();
+        let composite_alpha = caps.supported_composite_alpha.into_iter().next().unwrap();
+        let image_format = Some(
+            render_physical_device
+                .surface_formats(&surface, Default::default())
+                .unwrap()[0]
+                .0,
+        );
+
+        Swapchain::new(
+            render_device.clone(),
+            surface,
+            SwapchainCreateInfo {
+                min_image_count: caps.min_image_count,
+                image_format,
+                image_extent: dimensions.into(),
+                image_usage: ImageUsage::COLOR_ATTACHMENT,
+                composite_alpha,
+                ..Default::default()
+            },
+        )
+        .unwrap()
+    };
+    (swapchain, images)
 }
