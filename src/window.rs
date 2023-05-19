@@ -2,6 +2,7 @@ use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage};
 
+use vulkano::command_buffer::CommandBufferExecFuture;
 use vulkano::descriptor_set::allocator::{DescriptorSetAllocator, StandardDescriptorSetAllocator};
 use vulkano::descriptor_set::{self, PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::device::{Device, Queue};
@@ -19,14 +20,14 @@ use vulkano::swapchain::{
 use vulkano::swapchain::{AcquireError, SwapchainCreateInfo};
 use vulkano::VulkanLibrary;
 
-use vulkano::sync::future::FenceSignalFuture;
+use vulkano::sync::future::{FenceSignalFuture, NowFuture};
 use vulkano::sync::{self, FlushError, GpuFuture};
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::ControlFlow;
 
 use crate::deploy_shader;
-use crate::pass_structs::{WindowInitialized};
-use crate::simulation::sand::{PADDING,self,sand_shader::Material};
+use crate::pass_structs::WindowInitialized;
+use crate::simulation::sand::{self, sand_shader::Material, PADDING};
 
 mod fps;
 mod init;
@@ -55,8 +56,8 @@ pub fn make_window(
     >,
     compute_device: Arc<Device>,
     compute_queue: Arc<Queue>,
-    world: Vec<Padded<Material,PADDING>>,
-	work_groups: [u32;3],
+    world: Vec<Padded<Material, PADDING>>,
+    work_groups: [u32; 3],
 ) {
     let WindowInitialized {
         physical_device: render_physical_device,
@@ -68,12 +69,8 @@ pub fn make_window(
         queue: render_queue,
     } = init::initialize_window(&library);
 
-    let (mut swapchain, mut images) = utils::get_swapchain(
-        &render_physical_device,
-        &render_device,
-        &window,
-        surface,
-    );
+    let (mut swapchain, mut images) =
+        utils::get_swapchain(&render_physical_device, &render_device, &window, surface);
     let render_pass = utils::get_render_pass(render_device.clone(), swapchain.clone());
     let frame_buffers = utils::get_framebuffers(&images, render_pass.clone());
 
@@ -134,14 +131,22 @@ pub fn make_window(
         &frame_buffers,
         &vertex_buffer,
     );
+    let mut next_future: Option<FenceSignalFuture<CommandBufferExecFuture<NowFuture>>> = None;
 
     //fps
     let mut frames = [0f64; 15];
     let mut cur_frame = 0;
     let mut time = 0f64;
-	let world_buffer = sand::upload_buffer(world, &compute_memory_allocator);
-	let compute_shader_loaded = sand::sand_shader::load(compute_device.clone()).expect("Failed to create compute shader.");
-	let deploy_command = Arc::new(deploy_shader::get_deploy_command(&compute_shader_loaded, &compute_device, &compute_queue, &world_buffer, work_groups));
+    let world_buffer = sand::upload_buffer(world, &compute_memory_allocator);
+    let compute_shader_loaded =
+        sand::sand_shader::load(compute_device.clone()).expect("Failed to create compute shader.");
+    let deploy_command = Arc::new(deploy_shader::get_deploy_command(
+        &compute_shader_loaded,
+        &compute_device,
+        &compute_queue,
+        &world_buffer,
+        work_groups,
+    ));
     // let frames_r = &mut frames; winit static garbo or smth, idk why this does not work.
     // let cur_frame_r = &mut cur_frame;
     // let time_r = &mut time;
@@ -188,7 +193,7 @@ pub fn make_window(
                     Err(e) => panic!("failed to recreate swapchain: {e}"),
                 };
                 swapchain = new_swapchain;
-				let frame_buffers = utils::get_framebuffers(&new_images, render_pass.clone());
+                let frame_buffers = utils::get_framebuffers(&new_images, render_pass.clone());
                 viewport.dimensions = window_size.into();
                 let new_pipeline = utils::get_pipeline(
                     render_device.clone(),
@@ -264,12 +269,21 @@ pub fn make_window(
             if FPS_DISPLAY {
                 fps::do_fps(&mut frames, &mut cur_frame, &mut time);
             }
-            sand::tick(
+            if next_future.is_some() {
+				next_future.as_ref().unwrap().wait(None);
+                let binding = world_buffer.read().unwrap();
+                for (key, val) in binding.iter().enumerate() {
+                    if key <= 1 {
+                        println!("{val:?}");
+                    }
+                }
+            }
+
+            next_future = Option::from(sand::tick( // 1 frame of lag
                 &compute_device.clone(),
                 &compute_queue.clone(),
-				deploy_command.clone(),
-                &world_buffer,
-            );
+                deploy_command.clone(),
+            ));
         }
         _ => (),
     });

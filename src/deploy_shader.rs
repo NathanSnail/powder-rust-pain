@@ -19,58 +19,7 @@ pub fn deploy(
     device: Arc<Device>,
     queue: Arc<Queue>,
     command: Arc<PrimaryAutoCommandBuffer>,
-    work_group_counts: [u32; 3],
 ) -> FenceSignalFuture<CommandBufferExecFuture<NowFuture>> {
-    // let compute_pipeline = ComputePipeline::new(
-    //     device.clone(),
-    //     shader.entry_point("main").unwrap(),
-    //     &(),
-    //     None,
-    //     |_| {},
-    // )
-    // .expect("failed to create compute pipeline");
-
-    // let descriptor_set_allocator = StandardDescriptorSetAllocator::new(device.clone());
-    // let pipeline_layout = compute_pipeline.layout();
-    // let descriptor_set_layouts = pipeline_layout.set_layouts();
-    // let descriptor_set_layout_index = 0;
-    // let descriptor_set_layout = descriptor_set_layouts
-    //     .get(descriptor_set_layout_index)
-    //     .unwrap();
-
-    // let descriptor_set = match PersistentDescriptorSet::new(
-    //     &descriptor_set_allocator,
-    //     descriptor_set_layout.clone(),
-    //     [WriteDescriptorSet::buffer(0, buffer.clone())], // 0 is the binding
-    // ) {
-    //     Ok(res) => res,
-    //     Err(e) => panic!("Error with {e:?}"),
-    // };
-
-    // let command_buffer_allocator = StandardCommandBufferAllocator::new(
-    //     device.clone(),
-    //     StandardCommandBufferAllocatorCreateInfo::default(),
-    // );
-    // let mut command_buffer_builder = AutoCommandBufferBuilder::primary(
-    //     &command_buffer_allocator,
-    //     queue.queue_family_index(),
-    //     CommandBufferUsage::OneTimeSubmit,
-    // )
-    // .unwrap();
-
-    // command_buffer_builder
-    //     .bind_pipeline_compute(compute_pipeline.clone())
-    //     .bind_descriptor_sets(
-    //         PipelineBindPoint::Compute,
-    //         compute_pipeline.layout().clone(),
-    //         descriptor_set_layout_index as u32,
-    //         descriptor_set,
-    //     )
-    //     .dispatch(work_group_counts)
-    //     .unwrap();
-
-    // let command_buffer = command_buffer_builder.build().unwrap();
-    // let command_buffer = get_deploy_command(shader, device.clone(), queue.clone(), buffer, work_group_counts);
 
     sync::now(device)
         .then_execute(queue, command)

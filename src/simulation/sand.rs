@@ -2,14 +2,13 @@ use std::sync::Arc;
 
 use vulkano::buffer::Subbuffer;
 use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage};
-use vulkano::command_buffer::PrimaryAutoCommandBuffer;
+use vulkano::command_buffer::{CommandBufferExecFuture, PrimaryAutoCommandBuffer};
 use vulkano::device::{Device, Queue};
 use vulkano::padded::Padded;
+use vulkano::sync::future::{FenceSignalFuture, NowFuture};
 
 use crate::deploy_shader;
-use vulkano::memory::allocator::{
-    AllocationCreateInfo, GenericMemoryAllocator, MemoryAllocator, MemoryUsage,
-};
+use vulkano::memory::allocator::{AllocationCreateInfo, MemoryAllocator, MemoryUsage};
 
 pub mod sand_shader {
     vulkano_shaders::shader! {
@@ -41,28 +40,23 @@ impl Default for sand_shader::Material {
 pub fn tick(
     device: &Arc<Device>,
     queue: &Arc<Queue>,
-	command: Arc<PrimaryAutoCommandBuffer>,
+    command: Arc<PrimaryAutoCommandBuffer>,
     // world: Vec<sand_shader::Material>,
-    buffer: &Subbuffer<[Padded<sand_shader::Material, PADDING>]>,
-) {
+) -> FenceSignalFuture<CommandBufferExecFuture<NowFuture>> {
     // let buffer = upload_buffer(world, memory_allocator);
-    let future = deploy_shader::deploy(
-        device.clone(),
-        queue.clone(),
-        command,
-        [1, 1, 1],
-    );
-    future.wait(None).unwrap();
-    let binding = buffer.read().unwrap();
-    // let mut new: Vec<sand_shader::Material> = Vec::new();
-    for (key, val) in binding.iter().enumerate() {
-        // if key <= 1 {
-        //     // let out = val.pos;
-        //     println!("{val:?}");
-        // }
-        // new.push(deref);
-    }
-    // new
+    let future = deploy_shader::deploy(device.clone(), queue.clone(), command);
+    future
+    // future.wait(None).unwrap();
+    // let binding = buffer.read().unwrap();
+    // // let mut new: Vec<sand_shader::Material> = Vec::new();
+    // for (key, val) in binding.iter().enumerate() {
+    //     // if key <= 1 {
+    //     //     // let out = val.pos;
+    //     //     println!("{val:?}");
+    //     // }
+    //     // new.push(deref);
+    // }
+    // // new
 }
 
 pub fn upload_buffer(
