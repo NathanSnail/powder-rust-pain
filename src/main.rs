@@ -26,7 +26,8 @@ struct TestStruct {
 
 fn main() {
     let mut world: Vec<Padded<Material, PADDING>> = Vec::new();
-    for i in 1..(64 * 1) {
+	let work_groups = [4,1,1];
+    for i in 1..(64 * work_groups[0]) {
         let i_f = i as f32;
         world.push(Padded
 			(Material {
@@ -53,50 +54,9 @@ fn main() {
         std::sync::Arc<vulkano::memory::allocator::FreeListAllocator>,
     > = StandardMemoryAllocator::new_default(device.clone());
 
-    // let data: TestStruct = TestStruct {
-    //     first: 5,
-    //     second: 7,
-    //     res: 10,
-    // };
-    let mut data = Vec::new();
-    for a in 1..=20 {
-        for b in 1..=20 {
-            data.push(TestStruct {
-                first: a,
-                second: b,
-                res: 0,
-            });
-        }
-        // data.push(a);
-    }
+    // let data2 = 0..64; //staging, gpu 1, gpu 2, download (eventually)
 
-    let data2 = 0..64; //staging, gpu 1, gpu 2, download (eventually)
-    let buffer = Buffer::from_iter(
-        &memory_allocator,
-        BufferCreateInfo {
-            usage: BufferUsage::STORAGE_BUFFER,
-            ..Default::default()
-        },
-        AllocationCreateInfo {
-            usage: MemoryUsage::Upload,
-            ..Default::default()
-        },
-        data2,
-    )
-    .expect("failed to create buffer");
-    println!("buffer created!");
-
-    let shader = cs::load(device.clone()).expect("failed to create shader module");
-
-    let future = deploy_shader::deploy(shader, device.clone(), queue.clone(), &buffer, [1, 1, 1]);
-
-    future.wait(None).unwrap();
-    // let binding = buffer.read().unwrap();
-    // for val in binding.iter() {
-    //     println!("{val}");
-    // }
-
-    window::make_window(library, memory_allocator, device, queue, world);
+    window::make_window(library, memory_allocator, device, queue, world,work_groups);
     //main.rs is done now as window now has control
 }
 

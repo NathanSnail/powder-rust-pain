@@ -24,6 +24,7 @@ use vulkano::sync::{self, FlushError, GpuFuture};
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::ControlFlow;
 
+use crate::deploy_shader;
 use crate::pass_structs::{WindowInitialized};
 use crate::simulation::sand::{PADDING,self,sand_shader::Material};
 
@@ -55,6 +56,7 @@ pub fn make_window(
     compute_device: Arc<Device>,
     compute_queue: Arc<Queue>,
     world: Vec<Padded<Material,PADDING>>,
+	work_groups: [u32;3],
 ) {
     let WindowInitialized {
         physical_device: render_physical_device,
@@ -138,6 +140,8 @@ pub fn make_window(
     let mut cur_frame = 0;
     let mut time = 0f64;
 	let world_buffer = sand::upload_buffer(world, &compute_memory_allocator);
+	let compute_shader_loaded = sand::sand_shader::load(compute_device.clone()).expect("Failed to create compute shader.");
+	let deploy_command = Arc::new(deploy_shader::get_deploy_command(&compute_shader_loaded, &compute_device, &compute_queue, &world_buffer, work_groups));
     // let frames_r = &mut frames; winit static garbo or smth, idk why this does not work.
     // let cur_frame_r = &mut cur_frame;
     // let time_r = &mut time;
@@ -263,6 +267,7 @@ pub fn make_window(
             sand::tick(
                 &compute_device.clone(),
                 &compute_queue.clone(),
+				deploy_command.clone(),
                 &world_buffer,
             );
         }

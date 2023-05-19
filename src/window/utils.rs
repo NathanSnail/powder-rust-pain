@@ -168,7 +168,7 @@ pub fn get_swapchain(
                 image_extent: dimensions.into(),
                 image_usage: ImageUsage::COLOR_ATTACHMENT,
                 composite_alpha,
-				present_mode: PresentMode::Mailbox,
+				present_mode: PresentMode::Mailbox, //TODO add support for GPUs which don't have mailbox support, apparently immediate is second best.
                 ..Default::default()
             },
         )

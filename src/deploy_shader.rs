@@ -2,6 +2,7 @@ use crate::sync::future::FenceSignalFuture;
 use crate::sync::future::NowFuture;
 use std::sync::Arc;
 use vulkano::buffer::Subbuffer;
+use vulkano::command_buffer::PrimaryAutoCommandBuffer;
 use vulkano::command_buffer::allocator::{
     StandardCommandBufferAllocator, StandardCommandBufferAllocatorCreateInfo,
 };
@@ -14,11 +15,10 @@ use vulkano::pipeline::{ComputePipeline, Pipeline, PipelineBindPoint};
 use vulkano::shader::ShaderModule;
 use vulkano::sync::{self, GpuFuture};
 
-pub fn deploy<T>(
-    shader: Arc<ShaderModule>,
+pub fn deploy(
     device: Arc<Device>,
     queue: Arc<Queue>,
-    buffer: &Subbuffer<[T]>,
+    command: Arc<PrimaryAutoCommandBuffer>,
     work_group_counts: [u32; 3],
 ) -> FenceSignalFuture<CommandBufferExecFuture<NowFuture>> {
     // let compute_pipeline = ComputePipeline::new(
@@ -70,19 +70,19 @@ pub fn deploy<T>(
     //     .unwrap();
 
     // let command_buffer = command_buffer_builder.build().unwrap();
-    let command_buffer = get_deploy_command(shader, device.clone(), queue.clone(), buffer, work_group_counts);
+    // let command_buffer = get_deploy_command(shader, device.clone(), queue.clone(), buffer, work_group_counts);
 
     sync::now(device)
-        .then_execute(queue, command_buffer)
+        .then_execute(queue, command)
         .unwrap()
         .then_signal_fence_and_flush()
         .unwrap()
 }
 
 pub fn get_deploy_command<T>(
-    shader: Arc<ShaderModule>,
-    device: Arc<Device>,
-    queue: Arc<Queue>,
+    shader: &Arc<ShaderModule>,
+    device: &Arc<Device>,
+    queue: &Arc<Queue>,
     buffer: &Subbuffer<[T]>,
     work_group_counts: [u32; 3],
 ) -> vulkano::command_buffer::PrimaryAutoCommandBuffer {
@@ -113,13 +113,13 @@ pub fn get_deploy_command<T>(
     };
 
     let command_buffer_allocator = StandardCommandBufferAllocator::new(
-        device,
+        device.clone(),
         StandardCommandBufferAllocatorCreateInfo::default(),
     );
     let mut command_buffer_builder = AutoCommandBufferBuilder::primary(
         &command_buffer_allocator,
         queue.queue_family_index(),
-        CommandBufferUsage::OneTimeSubmit,
+        CommandBufferUsage::MultipleSubmit,
     )
     .unwrap();
 
