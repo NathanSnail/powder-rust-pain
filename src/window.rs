@@ -272,11 +272,11 @@ pub fn make_window(
             if next_future.is_some() {
 				next_future.as_ref().unwrap().wait(None);
                 let binding = world_buffer.read().unwrap();
-                for (key, val) in binding.iter().enumerate() {
-                    if key <= 1 {
-                        println!("{val:?}");
-                    }
-                }
+                // for (key, val) in binding.iter().enumerate() {
+                //     if key <= 1 {
+                //         println!("{val:?}");
+                //     }
+                // }
             }
 
             next_future = Option::from(sand::tick( // 1 frame of lag
