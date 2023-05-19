@@ -1,10 +1,10 @@
 use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
+
 use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage};
 
 use vulkano::command_buffer::CommandBufferExecFuture;
-use vulkano::descriptor_set::allocator::{DescriptorSetAllocator, StandardDescriptorSetAllocator};
-use vulkano::descriptor_set::{self, PersistentDescriptorSet, WriteDescriptorSet};
+
+
 use vulkano::device::{Device, Queue};
 
 use vulkano::memory::allocator::{
@@ -13,9 +13,9 @@ use vulkano::memory::allocator::{
 
 use vulkano::padded::Padded;
 use vulkano::pipeline::graphics::viewport::Viewport;
-use vulkano::pipeline::Pipeline;
+
 use vulkano::swapchain::{
-    acquire_next_image, Swapchain, SwapchainCreationError, SwapchainPresentInfo,
+    acquire_next_image, SwapchainCreationError, SwapchainPresentInfo,
 };
 use vulkano::swapchain::{AcquireError, SwapchainCreateInfo};
 use vulkano::VulkanLibrary;
@@ -64,12 +64,12 @@ pub fn make_window(
         surface,
         device: render_device,
         window,
-        mut window_size,
+        window_size,
         event_loop,
         queue: render_queue,
     } = init::initialize_window(&library);
 
-    let (mut swapchain, mut images) =
+    let (mut swapchain, images) =
         utils::get_swapchain(&render_physical_device, &render_device, &window, surface);
     let render_pass = utils::get_render_pass(render_device.clone(), swapchain.clone());
     let frame_buffers = utils::get_framebuffers(&images, render_pass.clone());
@@ -180,7 +180,6 @@ pub fn make_window(
                 recreate_swapchain = false;
 
                 let new_dimensions = window.inner_size();
-                window_size = new_dimensions;
 
                 let (new_swapchain, new_images) = match swapchain.recreate(SwapchainCreateInfo {
                     image_extent: new_dimensions.into(), // here, "image_extend" will correspond to the window dimensions
@@ -194,7 +193,7 @@ pub fn make_window(
                 };
                 swapchain = new_swapchain;
                 let frame_buffers = utils::get_framebuffers(&new_images, render_pass.clone());
-                viewport.dimensions = window_size.into();
+                viewport.dimensions = new_dimensions.into();
                 let new_pipeline = utils::get_pipeline(
                     render_device.clone(),
                     vs.clone(),
@@ -270,8 +269,11 @@ pub fn make_window(
                 fps::do_fps(&mut frames, &mut cur_frame, &mut time);
             }
             if next_future.is_some() {
-				next_future.as_ref().unwrap().wait(None);
-                let binding = world_buffer.read().unwrap();
+				match next_future.as_ref().unwrap().wait(None) {
+					Ok(_) => {},
+					Err(err) => {panic!("{err:?}")},
+				}
+                let _binding = world_buffer.read().unwrap();
                 // for (key, val) in binding.iter().enumerate() {
                 //     if key <= 1 {
                 //         println!("{val:?}");

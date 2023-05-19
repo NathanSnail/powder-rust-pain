@@ -1,7 +1,7 @@
-use vulkano::buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage};
+use vulkano::buffer::{BufferContents};
 
 use vulkano::memory::allocator::{
-    AllocationCreateInfo, GenericMemoryAllocator, MemoryUsage, StandardMemoryAllocator,
+    GenericMemoryAllocator, StandardMemoryAllocator,
 };
 use vulkano::padded::Padded;
 use vulkano::sync::{self};

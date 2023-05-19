@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use vulkano::buffer::BufferContents;
 use vulkano::device::physical::PhysicalDevice;
 use vulkano::device::Device;
 use vulkano::device::Queue;
