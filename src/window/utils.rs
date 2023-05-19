@@ -9,15 +9,15 @@ use vulkano::command_buffer::{
 use vulkano::descriptor_set;
 use vulkano::device::physical::PhysicalDevice;
 use vulkano::device::{Device, Queue};
-use vulkano::image::ImageUsage;
 use vulkano::image::{view::ImageView, SwapchainImage};
+use vulkano::image::{ImageAccess, ImageUsage};
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
 use vulkano::pipeline::graphics::vertex_input::Vertex;
 use vulkano::pipeline::graphics::viewport::{Viewport, ViewportState};
 use vulkano::pipeline::{GraphicsPipeline, Pipeline, PipelineBindPoint};
 use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass};
 use vulkano::shader::ShaderModule;
-use vulkano::swapchain::{Surface, Swapchain, SwapchainCreateInfo};
+use vulkano::swapchain::{Surface, Swapchain, SwapchainCreateInfo, PresentMode};
 
 #[derive(BufferContents, Vertex)]
 #[repr(C)]
@@ -168,6 +168,7 @@ pub fn get_swapchain(
                 image_extent: dimensions.into(),
                 image_usage: ImageUsage::COLOR_ATTACHMENT,
                 composite_alpha,
+				present_mode: PresentMode::Mailbox,
                 ..Default::default()
             },
         )

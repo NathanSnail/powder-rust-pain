@@ -10,6 +10,7 @@ use vulkano::memory::allocator::{
     AllocationCreateInfo, GenericMemoryAllocator, MemoryUsage, StandardMemoryAllocator,
 };
 
+use vulkano::padded::Padded;
 use vulkano::pipeline::graphics::viewport::Viewport;
 use vulkano::pipeline::Pipeline;
 use vulkano::swapchain::{
@@ -23,8 +24,8 @@ use vulkano::sync::{self, FlushError, GpuFuture};
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::ControlFlow;
 
-use crate::pass_structs::{Material, WindowInitialized};
-use crate::simulation::sand;
+use crate::pass_structs::{WindowInitialized};
+use crate::simulation::sand::{PADDING,self,sand_shader::Material};
 
 mod fps;
 mod init;
@@ -53,7 +54,7 @@ pub fn make_window(
     >,
     compute_device: Arc<Device>,
     compute_queue: Arc<Queue>,
-    mut world: Vec<Material>,
+    world: Vec<Padded<Material,PADDING>>,
 ) {
     let WindowInitialized {
         physical_device: render_physical_device,
@@ -69,7 +70,7 @@ pub fn make_window(
         &render_physical_device,
         &render_device,
         &window,
-        surface.clone(),
+        surface,
     );
     let render_pass = utils::get_render_pass(render_device.clone(), swapchain.clone());
     let frame_buffers = utils::get_framebuffers(&images, render_pass.clone());
@@ -124,7 +125,7 @@ pub fn make_window(
         viewport.clone(),
     );
 
-    let command_buffers = utils::get_command_buffers(
+    let mut command_buffers = utils::get_command_buffers(
         &render_device,
         &render_queue,
         &render_pipeline,
@@ -133,9 +134,10 @@ pub fn make_window(
     );
 
     //fps
-    let mut frames = [0f64; 60];
+    let mut frames = [0f64; 15];
     let mut cur_frame = 0;
     let mut time = 0f64;
+	let world_buffer = sand::upload_buffer(world, &compute_memory_allocator);
     // let frames_r = &mut frames; winit static garbo or smth, idk why this does not work.
     // let cur_frame_r = &mut cur_frame;
     // let time_r = &mut time;
@@ -182,6 +184,22 @@ pub fn make_window(
                     Err(e) => panic!("failed to recreate swapchain: {e}"),
                 };
                 swapchain = new_swapchain;
+				let frame_buffers = utils::get_framebuffers(&new_images, render_pass.clone());
+                viewport.dimensions = window_size.into();
+                let new_pipeline = utils::get_pipeline(
+                    render_device.clone(),
+                    vs.clone(),
+                    fs.clone(),
+                    render_pass.clone(),
+                    viewport.clone(),
+                );
+                command_buffers = utils::get_command_buffers(
+                    &render_device,
+                    &render_queue,
+                    &new_pipeline,
+                    &frame_buffers,
+                    &vertex_buffer,
+                );
             }
 
             let (image_i, suboptimal, acquire_future) =
@@ -242,11 +260,10 @@ pub fn make_window(
             if FPS_DISPLAY {
                 fps::do_fps(&mut frames, &mut cur_frame, &mut time);
             }
-            world = sand::tick(
-                &compute_memory_allocator,
+            sand::tick(
                 &compute_device.clone(),
                 &compute_queue.clone(),
-                &world,
+                &world_buffer,
             );
         }
         _ => (),
