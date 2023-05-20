@@ -63,24 +63,25 @@ pub fn upload_device_buffer(
     )
     .expect("failed to create buffer")
 }
-pub fn upload_standard_buffer(
-    data: Vec<Padded<sand_shader::Material, PADDING>>,
-    memory_allocator: &(impl MemoryAllocator + ?Sized),
-) -> Subbuffer<[Padded<sand_shader::Material, PADDING>]> {
-    Buffer::from_iter(
-        memory_allocator,
-        BufferCreateInfo {
-            usage: BufferUsage::STORAGE_BUFFER,
-            ..Default::default()
-        },
-        AllocationCreateInfo {
-            usage: MemoryUsage::Upload,
-            ..Default::default()
-        },
-        data,
-    )
-    .expect("failed to create buffer")
-}
+///! Slow and generally shouldn't be used, use a device and transfer buffer with download. 
+// pub fn upload_standard_buffer( 
+//     data: Vec<Padded<sand_shader::Material, PADDING>>,
+//     memory_allocator: &(impl MemoryAllocator + ?Sized),
+// ) -> Subbuffer<[Padded<sand_shader::Material, PADDING>]> {
+//     Buffer::from_iter(
+//         memory_allocator,
+//         BufferCreateInfo {
+//             usage: BufferUsage::STORAGE_BUFFER,
+//             ..Default::default()
+//         },
+//         AllocationCreateInfo {
+//             usage: MemoryUsage::Upload,
+//             ..Default::default()
+//         },
+//         data,
+//     )
+//     .expect("failed to create buffer")
+// }
 
 pub fn upload_transfer_source_buffer(
     data: Vec<Padded<sand_shader::Material, PADDING>>,

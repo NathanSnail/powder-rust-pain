@@ -214,10 +214,10 @@ pub fn recreate_swapchain(
         viewport.clone(),
     );
     *command_buffers = get_command_buffers(
-        &render_device,
-        &render_queue,
+        render_device,
+        render_queue,
         &new_pipeline,
         &frame_buffers,
-        &vertex_buffer,
+        vertex_buffer,
     );
 }
