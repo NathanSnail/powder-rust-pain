@@ -2,7 +2,11 @@ use std::sync::Arc;
 
 use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage};
 
-use vulkano::command_buffer::CommandBufferExecFuture;
+use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
+use vulkano::command_buffer::{
+    AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage, CopyBufferInfo,
+    PrimaryCommandBufferAbstract,
+};
 
 use vulkano::device::{Device, Queue};
 
@@ -77,14 +81,41 @@ pub fn make_window(
     let mut cur_frame = 0;
     let mut time = 0f64;
     //compute
-    let world_buffer = sand::upload_buffer(world, &compute_memory_allocator);
+    let world_buffer_accessible = sand::upload_transfer_source_buffer(world, &compute_memory_allocator);
+    let world_buffer_inaccessible =
+        sand::upload_device_buffer(&compute_memory_allocator, (work_groups[0] * 64) as u64);
+
+    // Create one-time command to copy between the buffers.
+    let command_buffer_allocator =
+        StandardCommandBufferAllocator::new(compute_device.clone(), Default::default());
+    let mut cbb = AutoCommandBufferBuilder::primary(
+        &command_buffer_allocator,
+        compute_queue.queue_family_index(),
+        CommandBufferUsage::OneTimeSubmit,
+    )
+    .unwrap();
+    cbb.copy_buffer(CopyBufferInfo::buffers(
+        world_buffer_accessible,
+        world_buffer_inaccessible.clone(),
+    ))
+    .unwrap();
+    let cb = cbb.build().unwrap();
+
+    // Execute copy and wait for copy to complete before proceeding.
+    cb.execute(compute_queue.clone())
+        .unwrap()
+        .then_signal_fence_and_flush()
+        .unwrap()
+        .wait(None)
+        .unwrap();
+	// Transfer complete
     let compute_shader_loaded =
         sand::sand_shader::load(compute_device.clone()).expect("Failed to create compute shader.");
     let deploy_command = Arc::new(deploy_shader::get_deploy_command(
         &compute_shader_loaded,
         &compute_device,
         &compute_queue,
-        &world_buffer,
+        &world_buffer_inaccessible,
         work_groups,
     ));
     let mut next_future: Option<FenceSignalFuture<CommandBufferExecFuture<NowFuture>>> = None;
@@ -198,7 +229,7 @@ pub fn make_window(
                         panic!("{err:?}")
                     }
                 }
-                let _binding = world_buffer.read().unwrap();
+                // let _binding = world_buffer_inaccessible.read().unwrap();
                 // for (key, val) in binding.iter().enumerate() {
                 //     if key <= 1 {
                 //         println!("{val:?}");

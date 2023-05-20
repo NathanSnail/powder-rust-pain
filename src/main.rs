@@ -1,8 +1,6 @@
-use vulkano::buffer::{BufferContents};
+use vulkano::buffer::BufferContents;
 
-use vulkano::memory::allocator::{
-    GenericMemoryAllocator, StandardMemoryAllocator,
-};
+use vulkano::memory::allocator::{GenericMemoryAllocator, StandardMemoryAllocator};
 use vulkano::padded::Padded;
 use vulkano::sync::{self};
 
@@ -12,7 +10,7 @@ mod pass_structs;
 mod simulation;
 mod window;
 
-use simulation::sand::{PADDING,sand_shader::Material};
+use simulation::sand::{sand_shader::Material, PADDING};
 
 #[derive(BufferContents)]
 #[repr(C)]
@@ -26,17 +24,15 @@ struct TestStruct {
 
 fn main() {
     let mut world: Vec<Padded<Material, PADDING>> = Vec::new();
-	let work_groups = [2usize.pow(14) as u32,1,1];
+    let work_groups = [2usize.pow(20) as u32, 1, 1];
     for i in 1..(64 * work_groups[0]) {
         let i_f = i as f32;
-        world.push(Padded
-			(Material {
-                id: i,
-                colour: [i_f / 100f32, i_f / 100f32, i_f / 100f32],
-                pos: [i_f, 100f32],
-                ..Default::default()
-            })
-        )
+        world.push(Padded(Material {
+            id: i,
+            colour: [i_f / 100f32, i_f / 100f32, i_f / 100f32],
+            pos: [i_f, 100f32],
+            ..Default::default()
+        }))
     }
 
     let (library, _physical_device, _queue_family_index, _instance, device, mut queues) =
@@ -52,6 +48,6 @@ fn main() {
 
     // let data2 = 0..64; //staging, gpu 1, gpu 2, download (eventually)
 
-    window::make_window(library, memory_allocator, device, queue, world,work_groups);
+    window::make_window(library, memory_allocator, device, queue, world, work_groups);
     //main.rs is done now as window now has control
 }

@@ -45,7 +45,25 @@ pub fn tick(
     deploy_shader::deploy(device.clone(), queue.clone(), command)
 }
 
-pub fn upload_buffer(
+pub fn upload_device_buffer(
+    memory_allocator: &(impl MemoryAllocator + ?Sized),
+    size: u64,
+) -> Subbuffer<[Padded<sand_shader::Material, PADDING>]> {
+    Buffer::new_slice(
+        memory_allocator,
+        BufferCreateInfo {
+            usage: BufferUsage::STORAGE_BUFFER | BufferUsage::TRANSFER_DST, // you need to be able to copy to a device only buffer so this is fine
+            ..Default::default()
+        },
+        AllocationCreateInfo {
+            usage: MemoryUsage::DeviceOnly,
+            ..Default::default()
+        },
+        size,
+    )
+    .expect("failed to create buffer")
+}
+pub fn upload_standard_buffer(
     data: Vec<Padded<sand_shader::Material, PADDING>>,
     memory_allocator: &(impl MemoryAllocator + ?Sized),
 ) -> Subbuffer<[Padded<sand_shader::Material, PADDING>]> {
@@ -53,6 +71,25 @@ pub fn upload_buffer(
         memory_allocator,
         BufferCreateInfo {
             usage: BufferUsage::STORAGE_BUFFER,
+            ..Default::default()
+        },
+        AllocationCreateInfo {
+            usage: MemoryUsage::Upload,
+            ..Default::default()
+        },
+        data,
+    )
+    .expect("failed to create buffer")
+}
+
+pub fn upload_transfer_source_buffer(
+    data: Vec<Padded<sand_shader::Material, PADDING>>,
+    memory_allocator: &(impl MemoryAllocator + ?Sized),
+) -> Subbuffer<[Padded<sand_shader::Material, PADDING>]> {
+    Buffer::from_iter(
+        memory_allocator,
+        BufferCreateInfo {
+            usage: BufferUsage::TRANSFER_SRC,
             ..Default::default()
         },
         AllocationCreateInfo {
