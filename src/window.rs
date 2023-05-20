@@ -4,7 +4,6 @@ use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage};
 
 use vulkano::command_buffer::CommandBufferExecFuture;
 
-
 use vulkano::device::{Device, Queue};
 
 use vulkano::memory::allocator::{
@@ -14,9 +13,7 @@ use vulkano::memory::allocator::{
 use vulkano::padded::Padded;
 use vulkano::pipeline::graphics::viewport::Viewport;
 
-use vulkano::swapchain::{
-    acquire_next_image, SwapchainCreationError, SwapchainPresentInfo,
-};
+use vulkano::swapchain::{acquire_next_image, SwapchainCreationError, SwapchainPresentInfo};
 use vulkano::swapchain::{AcquireError, SwapchainCreateInfo};
 use vulkano::VulkanLibrary;
 
@@ -32,20 +29,6 @@ use crate::simulation::sand::{self, sand_shader::Material, PADDING};
 mod fps;
 mod init;
 mod utils;
-
-mod vs {
-    vulkano_shaders::shader! {
-        ty: "vertex",
-        path:"src/shaders/test/test_vert.vert"
-    }
-}
-
-mod fs {
-    vulkano_shaders::shader! {
-        ty: "fragment",
-        path:"src/shaders/test/test_frag.frag"
-    }
-}
 
 const FPS_DISPLAY: bool = true;
 
@@ -69,74 +52,31 @@ pub fn make_window(
         queue: render_queue,
     } = init::initialize_window(&library);
 
-    let (mut swapchain, images) =
-        utils::get_swapchain(&render_physical_device, &render_device, &window, surface);
-    let render_pass = utils::get_render_pass(render_device.clone(), swapchain.clone());
-    let frame_buffers = utils::get_framebuffers(&images, render_pass.clone());
-
-    let render_memory_allocator = StandardMemoryAllocator::new_default(render_device.clone());
-
-    let vertex1 = utils::CPUVertex {
-        position: [-1.0, -1.0],
-    };
-    let vertex2 = utils::CPUVertex {
-        position: [3.0, -1.0], // 3 because -1 -> 1 => width = 2, 1 + 2 = 3
-    };
-    let vertex3 = utils::CPUVertex {
-        position: [-1.0, 3.0],
-    };
-    // let vertex4 = utils::CPUVertex {
-    //     position: [0.5, 0.5],
-    // }; Clipping makes this useless, see https://www.saschawillems.de/blog/2016/08/13/vulkan-tutorial-on-rendering-a-fullscreen-quad-without-buffers/
-    let vertex_buffer = Buffer::from_iter(
-        &render_memory_allocator,
-        BufferCreateInfo {
-            usage: BufferUsage::VERTEX_BUFFER,
-            ..Default::default()
-        },
-        AllocationCreateInfo {
-            usage: MemoryUsage::Upload,
-            ..Default::default()
-        },
-        vec![vertex1, vertex2, vertex3],
-    )
-    .unwrap();
-
-    let vs = vs::load(render_device.clone()).expect("failed to create shader module");
-    let fs = fs::load(render_device.clone()).expect("failed to create shader module");
-
-    let mut viewport = Viewport {
-        origin: [0.0, 0.0],
-        dimensions: window_size.into(),
-        depth_range: 0.0..1.0,
-    };
-
-    let mut recreate_swapchain = false;
-    let frames_in_flight = images.len();
-    let mut fences: Vec<Option<Arc<FenceSignalFuture<_>>>> = vec![None; frames_in_flight];
-    let mut previous_fence_i = 0;
-
-    let render_pipeline = utils::get_pipeline(
+    let (
+        mut swapchain,
+        mut recreate_swapchain,
+        mut command_buffers,
+        mut viewport,
+        render_pass,
+        vs,
+        fs,
+        vertex_buffer,
+        mut fences,
+        mut previous_fence_i,
+    ) = init::initialize_swapchain_screen(
+        render_physical_device,
         render_device.clone(),
-        vs.clone(),
-        fs.clone(),
-        render_pass.clone(),
-        viewport.clone(),
+        window.clone(),
+        surface,
+        window_size,
+        render_queue.clone(),
     );
-
-    let mut command_buffers = utils::get_command_buffers(
-        &render_device,
-        &render_queue,
-        &render_pipeline,
-        &frame_buffers,
-        &vertex_buffer,
-    );
-    let mut next_future: Option<FenceSignalFuture<CommandBufferExecFuture<NowFuture>>> = None;
 
     //fps
     let mut frames = [0f64; 15];
     let mut cur_frame = 0;
     let mut time = 0f64;
+    //compute
     let world_buffer = sand::upload_buffer(world, &compute_memory_allocator);
     let compute_shader_loaded =
         sand::sand_shader::load(compute_device.clone()).expect("Failed to create compute shader.");
@@ -147,6 +87,7 @@ pub fn make_window(
         &world_buffer,
         work_groups,
     ));
+    let mut next_future: Option<FenceSignalFuture<CommandBufferExecFuture<NowFuture>>> = None;
     // let frames_r = &mut frames; winit static garbo or smth, idk why this does not work.
     // let cur_frame_r = &mut cur_frame;
     // let time_r = &mut time;
@@ -178,35 +119,17 @@ pub fn make_window(
             if recreate_swapchain {
                 // println!("recreating swapchain (slow)");
                 recreate_swapchain = false;
-
-                let new_dimensions = window.inner_size();
-
-                let (new_swapchain, new_images) = match swapchain.recreate(SwapchainCreateInfo {
-                    image_extent: new_dimensions.into(), // here, "image_extend" will correspond to the window dimensions
-                    ..swapchain.create_info()
-                }) {
-                    Ok(r) => r,
-                    // This error tends to happen when the user is manually resizing the window.
-                    // Simply restarting the loop is the easiest way to fix this issue.
-                    Err(SwapchainCreationError::ImageExtentNotSupported { .. }) => return,
-                    Err(e) => panic!("failed to recreate swapchain: {e}"),
-                };
-                swapchain = new_swapchain;
-                let frame_buffers = utils::get_framebuffers(&new_images, render_pass.clone());
-                viewport.dimensions = new_dimensions.into();
-                let new_pipeline = utils::get_pipeline(
-                    render_device.clone(),
-                    vs.clone(),
-                    fs.clone(),
-                    render_pass.clone(),
-                    viewport.clone(),
-                );
-                command_buffers = utils::get_command_buffers(
+                utils::recreate_swapchain(
+                    &window,
+                    &render_pass,
+                    &mut swapchain,
+                    &mut viewport,
                     &render_device,
                     &render_queue,
-                    &new_pipeline,
-                    &frame_buffers,
                     &vertex_buffer,
+                    &mut command_buffers,
+                    &vs,
+                    &fs,
                 );
             }
 
@@ -269,10 +192,12 @@ pub fn make_window(
                 fps::do_fps(&mut frames, &mut cur_frame, &mut time);
             }
             if next_future.is_some() {
-				match next_future.as_ref().unwrap().wait(None) {
-					Ok(_) => {},
-					Err(err) => {panic!("{err:?}")},
-				}
+                match next_future.as_ref().unwrap().wait(None) {
+                    Ok(_) => {}
+                    Err(err) => {
+                        panic!("{err:?}")
+                    }
+                }
                 let _binding = world_buffer.read().unwrap();
                 // for (key, val) in binding.iter().enumerate() {
                 //     if key <= 1 {
@@ -281,7 +206,8 @@ pub fn make_window(
                 // }
             }
 
-            next_future = Option::from(sand::tick( // 1 frame of lag
+            next_future = Option::from(sand::tick(
+                // 1 frame of lag
                 &compute_device.clone(),
                 &compute_queue.clone(),
                 deploy_command.clone(),

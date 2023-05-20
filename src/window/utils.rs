@@ -2,22 +2,24 @@ use crate::window::Arc;
 use vulkano::buffer::{BufferContents, Subbuffer};
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::{
-    AutoCommandBufferBuilder, CommandBufferUsage, PrimaryAutoCommandBuffer, RenderPassBeginInfo,
-    SubpassContents,
+    self, AutoCommandBufferBuilder, CommandBufferUsage, PrimaryAutoCommandBuffer,
+    RenderPassBeginInfo, SubpassContents,
 };
-
 
 use vulkano::device::physical::PhysicalDevice;
 use vulkano::device::{Device, Queue};
+use vulkano::image::ImageUsage;
 use vulkano::image::{view::ImageView, SwapchainImage};
-use vulkano::image::{ImageUsage};
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
 use vulkano::pipeline::graphics::vertex_input::Vertex;
 use vulkano::pipeline::graphics::viewport::{Viewport, ViewportState};
-use vulkano::pipeline::{GraphicsPipeline};
+use vulkano::pipeline::GraphicsPipeline;
 use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass};
 use vulkano::shader::ShaderModule;
-use vulkano::swapchain::{Surface, Swapchain, SwapchainCreateInfo, PresentMode};
+use vulkano::swapchain::{
+    PresentMode, Surface, Swapchain, SwapchainCreateInfo, SwapchainCreationError,
+};
+use winit::window::Window;
 
 #[derive(BufferContents, Vertex)]
 #[repr(C)]
@@ -168,11 +170,54 @@ pub fn get_swapchain(
                 image_extent: dimensions.into(),
                 image_usage: ImageUsage::COLOR_ATTACHMENT,
                 composite_alpha,
-				present_mode: PresentMode::Mailbox, //TODO add support for GPUs which don't have mailbox support, apparently immediate is second best.
+                present_mode: PresentMode::Mailbox, //TODO add support for GPUs which don't have mailbox support, apparently immediate is second best.
                 ..Default::default()
             },
         )
         .unwrap()
     };
     (swapchain, images)
+}
+
+pub fn recreate_swapchain(
+    window: &Window,
+    render_pass: &Arc<RenderPass>,
+    swapchain: &mut Arc<Swapchain>,
+    viewport: &mut Viewport,
+    render_device: &Arc<Device>,
+    render_queue: &Arc<Queue>,
+    vertex_buffer: &Subbuffer<[CPUVertex]>,
+    command_buffers: &mut Vec<Arc<PrimaryAutoCommandBuffer>>,
+	vs: &Arc<ShaderModule>,
+	fs: &Arc<ShaderModule>,
+) {
+    let new_dimensions = window.inner_size();
+
+    let (new_swapchain, new_images) = match swapchain.recreate(SwapchainCreateInfo {
+        image_extent: new_dimensions.into(), // here, "image_extend" will correspond to the window dimensions
+        ..swapchain.create_info()
+    }) {
+        Ok(r) => r,
+        // This error tends to happen when the user is manually resizing the window.
+        // Simply restarting the loop is the easiest way to fix this issue.
+        Err(SwapchainCreationError::ImageExtentNotSupported { .. }) => return,
+        Err(e) => panic!("failed to recreate swapchain: {e}"),
+    };
+    *swapchain = new_swapchain;
+    let frame_buffers = get_framebuffers(&new_images, render_pass.clone());
+    viewport.dimensions = new_dimensions.into();
+    let new_pipeline = get_pipeline(
+        render_device.clone(),
+        vs.clone(),
+        fs.clone(),
+        render_pass.clone(),
+        viewport.clone(),
+    );
+    *command_buffers = get_command_buffers(
+        &render_device,
+        &render_queue,
+        &new_pipeline,
+        &frame_buffers,
+        &vertex_buffer,
+    );
 }

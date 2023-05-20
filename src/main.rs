@@ -26,7 +26,7 @@ struct TestStruct {
 
 fn main() {
     let mut world: Vec<Padded<Material, PADDING>> = Vec::new();
-	let work_groups = [2usize.pow(15) as u32,1,1];
+	let work_groups = [2usize.pow(14) as u32,1,1];
     for i in 1..(64 * work_groups[0]) {
         let i_f = i as f32;
         world.push(Padded
@@ -46,10 +46,6 @@ fn main() {
 
     let queue = queues.next().unwrap();
 
-    // let command_buffer_allocator = StandardCommandBufferAllocator::new(
-    //     device.clone(),
-    //     StandardCommandBufferAllocatorCreateInfo::default(),
-    // );
     let memory_allocator: GenericMemoryAllocator<
         std::sync::Arc<vulkano::memory::allocator::FreeListAllocator>,
     > = StandardMemoryAllocator::new_default(device.clone());
@@ -58,11 +54,4 @@ fn main() {
 
     window::make_window(library, memory_allocator, device, queue, world,work_groups);
     //main.rs is done now as window now has control
-}
-
-mod cs {
-    vulkano_shaders::shader! {
-        ty: "compute",
-        path: "src/shaders/test/test.glsl",
-    }
 }
