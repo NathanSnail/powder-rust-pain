@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage};
+
 
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::{
@@ -11,14 +11,14 @@ use vulkano::command_buffer::{
 use vulkano::device::{Device, Queue};
 
 use vulkano::memory::allocator::{
-    AllocationCreateInfo, GenericMemoryAllocator, MemoryUsage, StandardMemoryAllocator,
+    GenericMemoryAllocator,
 };
 
 use vulkano::padded::Padded;
-use vulkano::pipeline::graphics::viewport::Viewport;
 
-use vulkano::swapchain::{acquire_next_image, SwapchainCreationError, SwapchainPresentInfo};
-use vulkano::swapchain::{AcquireError, SwapchainCreateInfo};
+
+use vulkano::swapchain::{acquire_next_image, SwapchainPresentInfo};
+use vulkano::swapchain::{AcquireError};
 use vulkano::VulkanLibrary;
 
 use vulkano::sync::future::{FenceSignalFuture, NowFuture};

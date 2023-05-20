@@ -24,7 +24,7 @@ use vulkano_win::VkSurfaceBuild;
 
 use winit::dpi::PhysicalSize;
 use winit::event_loop::EventLoop;
-use winit::window::{self, Window, WindowBuilder};
+use winit::window::{Window, WindowBuilder};
 
 use crate::pass_structs::WindowInitialized;
 
@@ -148,7 +148,7 @@ pub fn initialize_swapchain_screen(
 	Vec<fence_expanded>,
 	u32,
 ) {
-    let (mut swapchain, images) =
+    let (swapchain, images) =
         utils::get_swapchain(&render_physical_device, &render_device, &window, surface);
     let render_pass = utils::get_render_pass(render_device.clone(), swapchain.clone());
     let frame_buffers = utils::get_framebuffers(&images, render_pass.clone());
@@ -184,16 +184,16 @@ pub fn initialize_swapchain_screen(
     let vs = vs::load(render_device.clone()).expect("failed to create shader module");
     let fs = fs::load(render_device.clone()).expect("failed to create shader module");
 
-    let mut viewport = Viewport {
+    let viewport = Viewport {
         origin: [0.0, 0.0],
         dimensions: window_size.into(),
         depth_range: 0.0..1.0,
     };
 
-    let mut recreate_swapchain = false;
+    let recreate_swapchain = false;
     let frames_in_flight = images.len();
-    let mut fences: Vec<fence_expanded> = vec![None; frames_in_flight];
-    let mut previous_fence_i = 0;
+    let fences: Vec<fence_expanded> = vec![None; frames_in_flight];
+    let previous_fence_i = 0;
 
     let render_pipeline = utils::get_pipeline(
         render_device.clone(),
@@ -203,7 +203,7 @@ pub fn initialize_swapchain_screen(
         viewport.clone(),
     );
 
-    let mut command_buffers = utils::get_command_buffers(
+    let command_buffers = utils::get_command_buffers(
         &render_device,
         &render_queue,
         &render_pipeline,
