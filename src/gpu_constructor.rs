@@ -52,6 +52,7 @@ pub fn construct_gpu() -> (
             }],
             enabled_extensions: DeviceExtensions {
                 khr_storage_buffer_storage_class: true,
+				khr_swapchain: true,
                 ..DeviceExtensions::empty()
             },
             ..Default::default()

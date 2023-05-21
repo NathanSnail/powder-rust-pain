@@ -30,7 +30,7 @@ use crate::pass_structs::WindowInitialized;
 
 use super::utils::{self, CPUVertex};
 
-type fence_expanded = Option<
+type FenceExpanded = Option<
     Arc<
         FenceSignalFuture<
             PresentFuture<
@@ -129,6 +129,15 @@ pub fn initialize_window(library: &Arc<VulkanLibrary>) -> WindowInitialized {
     }
 }
 
+pub fn initialize_window_from_preexisting(
+    physical_device: Arc<PhysicalDevice>,
+    device: Arc<Device>,
+    queue: Arc<Queue>,
+) -> () {
+	let (swapchain, images) =
+        utils::get_swapchain(&physical_device, &device, &window, surface);
+}
+
 pub fn initialize_swapchain_screen(
     render_physical_device: Arc<PhysicalDevice>,
     render_device: Arc<Device>,
@@ -144,9 +153,9 @@ pub fn initialize_swapchain_screen(
     Arc<RenderPass>,
     Arc<ShaderModule>,
     Arc<ShaderModule>,
-	Subbuffer<[CPUVertex]>,
-	Vec<fence_expanded>,
-	u32,
+    Subbuffer<[CPUVertex]>,
+    Vec<FenceExpanded>,
+    u32,
 ) {
     let (swapchain, images) =
         utils::get_swapchain(&render_physical_device, &render_device, &window, surface);
@@ -192,7 +201,7 @@ pub fn initialize_swapchain_screen(
 
     let recreate_swapchain = false;
     let frames_in_flight = images.len();
-    let fences: Vec<fence_expanded> = vec![None; frames_in_flight];
+    let fences: Vec<FenceExpanded> = vec![None; frames_in_flight];
     let previous_fence_i = 0;
 
     let render_pipeline = utils::get_pipeline(

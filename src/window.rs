@@ -1,34 +1,23 @@
 use std::sync::Arc;
 
-
-
+use crate::deploy_shader;
+use crate::pass_structs::WindowInitialized;
+use crate::simulation::sand::{self, sand_shader::Material, PADDING};
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::{
     AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage, CopyBufferInfo,
     PrimaryCommandBufferAbstract,
 };
-
 use vulkano::device::{Device, Queue};
-
-use vulkano::memory::allocator::{
-    GenericMemoryAllocator,
-};
-
+use vulkano::memory::allocator::GenericMemoryAllocator;
 use vulkano::padded::Padded;
-
-
+use vulkano::swapchain::AcquireError;
 use vulkano::swapchain::{acquire_next_image, SwapchainPresentInfo};
-use vulkano::swapchain::{AcquireError};
-use vulkano::VulkanLibrary;
-
 use vulkano::sync::future::{FenceSignalFuture, NowFuture};
 use vulkano::sync::{self, FlushError, GpuFuture};
+use vulkano::VulkanLibrary;
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::ControlFlow;
-
-use crate::deploy_shader;
-use crate::pass_structs::WindowInitialized;
-use crate::simulation::sand::{self, sand_shader::Material, PADDING};
 
 mod fps;
 mod init;
@@ -49,11 +38,11 @@ pub fn make_window(
     let WindowInitialized {
         physical_device: render_physical_device,
         surface,
-        device: render_device,
+        device: _render_device,
         window,
         window_size,
         event_loop,
-        queue: render_queue,
+        queue: _render_queue,
     } = init::initialize_window(&library);
 
     let (
@@ -81,7 +70,8 @@ pub fn make_window(
     let mut cur_frame = 0;
     let mut time = 0f64;
     //compute
-    let world_buffer_accessible = sand::upload_transfer_source_buffer(world, &compute_memory_allocator);
+    let world_buffer_accessible =
+        sand::upload_transfer_source_buffer(world, &compute_memory_allocator);
     let world_buffer_inaccessible =
         sand::upload_device_buffer(&compute_memory_allocator, (work_groups[0] * 64) as u64);
 
@@ -108,7 +98,7 @@ pub fn make_window(
         .unwrap()
         .wait(None)
         .unwrap();
-	// Transfer complete
+    // Transfer complete
     let compute_shader_loaded =
         sand::sand_shader::load(compute_device.clone()).expect("Failed to create compute shader.");
     let deploy_command = Arc::new(deploy_shader::get_deploy_command(
@@ -119,9 +109,7 @@ pub fn make_window(
         work_groups,
     ));
     let mut next_future: Option<FenceSignalFuture<CommandBufferExecFuture<NowFuture>>> = None;
-    // let frames_r = &mut frames; winit static garbo or smth, idk why this does not work.
-    // let cur_frame_r = &mut cur_frame;
-    // let time_r = &mut time;
+
     event_loop.run(move |event, _, control_flow| match event {
         Event::WindowEvent {
             event: WindowEvent::CloseRequested,

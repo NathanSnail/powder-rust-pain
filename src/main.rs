@@ -24,7 +24,7 @@ struct TestStruct {
 
 fn main() {
     let mut world: Vec<Padded<Material, PADDING>> = Vec::new();
-    let work_groups = [2usize.pow(20) as u32, 1, 1];
+    let work_groups = [2usize.pow(0) as u32, 1, 1];
     for i in 1..(64 * work_groups[0]) {
         let i_f = i as f32;
         world.push(Padded(Material {
@@ -32,15 +32,15 @@ fn main() {
             colour: [i_f / 100f32, i_f / 100f32, i_f / 100f32],
             pos: [i_f, 100f32],
             ..Default::default()
-        }))
+        }));
     }
 
     let (library, _physical_device, _queue_family_index, _instance, device, mut queues) =
         gpu_constructor::construct_gpu();
-
     // -=-=-=-=-=
 
     let queue = queues.next().unwrap();
+	println!("{queue:?}");
 
     let memory_allocator: GenericMemoryAllocator<
         std::sync::Arc<vulkano::memory::allocator::FreeListAllocator>,
