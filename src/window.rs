@@ -91,21 +91,21 @@ pub fn make_window(
     // Create one-time command to copy between the buffers.
     let command_buffer_allocator =
         StandardCommandBufferAllocator::new(compute_device.clone(), Default::default());
-    let mut cbb = AutoCommandBufferBuilder::primary(
+    let mut command_buffer_builder = AutoCommandBufferBuilder::primary(
         &command_buffer_allocator,
         compute_queue.queue_family_index(),
         CommandBufferUsage::OneTimeSubmit,
     )
     .unwrap();
-    cbb.copy_buffer(CopyBufferInfo::buffers(
+    command_buffer_builder.copy_buffer(CopyBufferInfo::buffers(
         world_buffer_accessible,
         world_buffer_inaccessible.clone(),
     ))
     .unwrap();
-    let cb = cbb.build().unwrap();
+    let command_buffer = command_buffer_builder.build().unwrap();
 
     // Execute copy and wait for copy to complete before proceeding.
-    cb.execute(compute_queue.clone())
+    command_buffer.execute(compute_queue.clone())
         .unwrap()
         .then_signal_fence_and_flush()
         .unwrap()

@@ -219,8 +219,8 @@ pub fn initialize_swapchain_screen(
     )
     .unwrap();
 
-    let vs = vs::load(render_device.clone()).expect("failed to create shader module");
-    let fs = fs::load(render_device.clone()).expect("failed to create shader module");
+    let vs_loaded = vs::load(render_device.clone()).expect("failed to create shader module");
+    let fs_loaded = fs::load(render_device.clone()).expect("failed to create shader module");
 
     let viewport = Viewport {
         origin: [0.0, 0.0],
@@ -235,8 +235,8 @@ pub fn initialize_swapchain_screen(
 
     let render_pipeline = utils::get_pipeline(
         render_device.clone(),
-        vs.clone(),
-        fs.clone(),
+        vs_loaded.clone(),
+        fs_loaded.clone(),
         render_pass.clone(),
         viewport.clone(),
     );
@@ -255,8 +255,8 @@ pub fn initialize_swapchain_screen(
         command_buffers,
         viewport,
         render_pass,
-        vs,
-        fs,
+        vs_loaded,
+        fs_loaded,
         vertex_buffer,
         fences,
         previous_fence_i,

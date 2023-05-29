@@ -51,7 +51,6 @@ fn main() {
     // -=-=-=-=-=
 
     let queue = queues.next().unwrap();
-    println!("{queue:?}");
 
     let memory_allocator: GenericMemoryAllocator<
         std::sync::Arc<vulkano::memory::allocator::FreeListAllocator>,

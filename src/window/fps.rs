@@ -17,5 +17,5 @@ pub fn do_fps(frames: &mut [f64], cur_frame: &mut u32, lt: &mut f64){
     }
     sum_time /= 15f64;
     let fps = 1f64 / sum_time + 0.5;
-    print!("\rFPS: {fps:.0?}   ");
+    if *cur_frame%15==0 {print!("\rFPS: {fps:.0?}   ")};
 }
