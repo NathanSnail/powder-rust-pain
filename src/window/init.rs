@@ -133,9 +133,38 @@ pub fn initialize_window_from_preexisting(
     physical_device: Arc<PhysicalDevice>,
     device: Arc<Device>,
     queue: Arc<Queue>,
-) -> () {
-	let (swapchain, images) =
-        utils::get_swapchain(&physical_device, &device, &window, surface);
+    library: &Arc<VulkanLibrary>,
+) -> WindowInitialized {
+    let required_extensions = vulkano_win::required_extensions(library);
+    let instance = Instance::new(
+        library.clone(),
+        InstanceCreateInfo {
+            enabled_extensions: required_extensions,
+            ..Default::default()
+        },
+    )
+    .expect("failed to make instance");
+    let event_loop = EventLoop::new();
+    let surface = WindowBuilder::new()
+        .build_vk_surface(&event_loop, instance.clone())
+        .unwrap();
+    let window = surface
+        .object()
+        .unwrap()
+        .clone()
+        .downcast::<Window>()
+        .unwrap();
+    let (swapchain, images) = utils::get_swapchain(&physical_device, &device, &window, surface.clone());
+    let window_size = window.inner_size();
+    WindowInitialized {
+        physical_device, // cool rust feature you don't need field names if its the same
+        surface,
+        device,
+        window,
+        window_size,
+        event_loop,
+        queue,
+    }
 }
 
 pub fn initialize_swapchain_screen(

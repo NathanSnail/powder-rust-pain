@@ -8,16 +8,19 @@ use vulkano::command_buffer::{
     AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage, CopyBufferInfo,
     PrimaryCommandBufferAbstract,
 };
-use vulkano::device::{Device, Queue};
+use vulkano::device::physical::PhysicalDevice;
+use vulkano::device::{physical, Device, Queue};
 use vulkano::memory::allocator::GenericMemoryAllocator;
 use vulkano::padded::Padded;
-use vulkano::swapchain::AcquireError;
 use vulkano::swapchain::{acquire_next_image, SwapchainPresentInfo};
+use vulkano::swapchain::{AcquireError, Surface};
 use vulkano::sync::future::{FenceSignalFuture, NowFuture};
 use vulkano::sync::{self, FlushError, GpuFuture};
 use vulkano::VulkanLibrary;
+use winit::dpi::PhysicalSize;
 use winit::event::{Event, WindowEvent};
-use winit::event_loop::ControlFlow;
+use winit::event_loop::{ControlFlow, EventLoop};
+use winit::window::Window;
 
 mod fps;
 mod init;
@@ -34,16 +37,26 @@ pub fn make_window(
     compute_queue: Arc<Queue>,
     world: Vec<Padded<Material, PADDING>>,
     work_groups: [u32; 3],
+    physical_device: Arc<PhysicalDevice>,
+    window: Arc<Window>,
+    surface: Arc<Surface>,
+	event_loop: EventLoop<()>,
+	window_size: PhysicalSize<u32>,
 ) {
-    let WindowInitialized {
-        physical_device: render_physical_device,
-        surface,
-        device: _render_device,
-        window,
-        window_size,
-        event_loop,
-        queue: _render_queue,
-    } = init::initialize_window(&library);
+    // let WindowInitialized {
+    //     physical_device,
+    //     surface,
+    //     device,
+    //     window,
+    //     window_size,
+    //     event_loop,
+    //     queue,
+    // } = init::initialize_window_from_preexisting(
+    //     physical_device,
+    //     compute_device.clone(),
+    //     compute_queue.clone(),
+    //     &library,
+    // );
 
     let (
         mut swapchain,
@@ -57,12 +70,12 @@ pub fn make_window(
         mut fences,
         mut previous_fence_i,
     ) = init::initialize_swapchain_screen(
-        render_physical_device,
-        render_device.clone(),
+        physical_device,
+        compute_device.clone(),
         window.clone(),
         surface,
         window_size,
-        render_queue.clone(),
+        compute_queue.clone(),
     );
 
     //fps
@@ -143,8 +156,8 @@ pub fn make_window(
                     &render_pass,
                     &mut swapchain,
                     &mut viewport,
-                    &render_device,
-                    &render_queue,
+                    &compute_device,
+                    &compute_queue,
                     &vertex_buffer,
                     &mut command_buffers,
                     &vs,
@@ -173,7 +186,7 @@ pub fn make_window(
             let previous_future = match fences[previous_fence_i as usize].clone() {
                 // Create a NowFuture
                 None => {
-                    let mut now = sync::now(render_device.clone());
+                    let mut now = sync::now(compute_device.clone());
                     now.cleanup_finished();
 
                     now.boxed()
@@ -185,12 +198,12 @@ pub fn make_window(
             let future = previous_future
                 .join(acquire_future)
                 .then_execute(
-                    render_queue.clone(),
+                    compute_queue.clone(),
                     command_buffers[image_i as usize].clone(),
                 )
                 .unwrap()
                 .then_swapchain_present(
-                    render_queue.clone(),
+                    compute_queue.clone(),
                     SwapchainPresentInfo::swapchain_image_index(swapchain.clone(), image_i),
                 )
                 .then_signal_fence_and_flush();

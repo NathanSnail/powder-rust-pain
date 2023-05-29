@@ -11,6 +11,7 @@ mod simulation;
 mod window;
 
 use simulation::sand::{sand_shader::Material, PADDING};
+use winit::event_loop;
 
 #[derive(BufferContents)]
 #[repr(C)]
@@ -35,12 +36,22 @@ fn main() {
         }));
     }
 
-    let (library, _physical_device, _queue_family_index, _instance, device, mut queues) =
-        gpu_constructor::construct_gpu();
+    let (
+        library,
+        physical_device,
+        _queue_family_index,
+        _instance,
+        device,
+        mut queues,
+        window,
+        surface,
+		event_loop,
+		window_size,
+    ) = gpu_constructor::construct_gpu();
     // -=-=-=-=-=
 
     let queue = queues.next().unwrap();
-	println!("{queue:?}");
+    println!("{queue:?}");
 
     let memory_allocator: GenericMemoryAllocator<
         std::sync::Arc<vulkano::memory::allocator::FreeListAllocator>,
@@ -48,6 +59,18 @@ fn main() {
 
     // let data2 = 0..64; //staging, gpu 1, gpu 2, download (eventually)
 
-    window::make_window(library, memory_allocator, device, queue, world, work_groups);
+    window::make_window(
+        library,
+        memory_allocator,
+        device,
+        queue,
+        world,
+        work_groups,
+        physical_device,
+        window,
+        surface,
+		event_loop,
+		window_size,
+    );
     //main.rs is done now as window now has control
 }
