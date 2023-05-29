@@ -2,10 +2,12 @@ use crate::window::Arc;
 use vulkano::buffer::{BufferContents, Subbuffer};
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::{
-    AutoCommandBufferBuilder, CommandBufferUsage, PrimaryAutoCommandBuffer,
-    RenderPassBeginInfo, SubpassContents,
+    AutoCommandBufferBuilder, CommandBufferUsage, PrimaryAutoCommandBuffer, RenderPassBeginInfo,
+    SubpassContents,
 };
 
+use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
+use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::device::physical::PhysicalDevice;
 use vulkano::device::{Device, Queue};
 use vulkano::image::ImageUsage;
@@ -13,13 +15,15 @@ use vulkano::image::{view::ImageView, SwapchainImage};
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
 use vulkano::pipeline::graphics::vertex_input::Vertex;
 use vulkano::pipeline::graphics::viewport::{Viewport, ViewportState};
-use vulkano::pipeline::GraphicsPipeline;
+use vulkano::pipeline::{GraphicsPipeline, Pipeline, PipelineBindPoint};
 use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass};
 use vulkano::shader::ShaderModule;
 use vulkano::swapchain::{
     PresentMode, Surface, Swapchain, SwapchainCreateInfo, SwapchainCreationError,
 };
 use winit::window::Window;
+
+use super::init;
 
 #[derive(BufferContents, Vertex)]
 #[repr(C)]
@@ -85,12 +89,14 @@ pub fn get_pipeline(
         .unwrap()
 }
 
-pub fn get_command_buffers(
+pub fn get_command_buffers<T>(
     device: &Arc<Device>,
     queue: &Arc<Queue>,
     pipeline: &Arc<GraphicsPipeline>,
     frame_buffers: &[Arc<Framebuffer>],
     vertex_buffer: &Subbuffer<[CPUVertex]>,
+    push_constants: init::fs::PushType,
+    buffer: &Subbuffer<[T]>,
 ) -> Vec<Arc<PrimaryAutoCommandBuffer>> {
     let command_buffer_allocator =
         StandardCommandBufferAllocator::new(device.clone(), Default::default());
@@ -103,17 +109,23 @@ pub fn get_command_buffers(
                 pipeline,
                 vertex_buffer,
                 &command_buffer_allocator,
+                push_constants,
+                buffer,
+                device,
             )
         })
         .collect()
 }
 
-fn build_render_pass(
+fn build_render_pass<T>(
     frame_buffer: &Arc<Framebuffer>,
     queue: &Arc<Queue>,
     pipeline: &Arc<GraphicsPipeline>,
     vertex_buffer: &Subbuffer<[CPUVertex]>,
     command_buffer_allocator: &StandardCommandBufferAllocator,
+    push_constants: init::fs::PushType,
+    buffer: &Subbuffer<[T]>,
+    device: &Arc<Device>,
 ) -> Arc<PrimaryAutoCommandBuffer> {
     let mut builder = AutoCommandBufferBuilder::primary(
         command_buffer_allocator,
@@ -121,6 +133,22 @@ fn build_render_pass(
         CommandBufferUsage::MultipleSubmit,
     )
     .unwrap();
+
+    let layout = pipeline.layout();
+    let descriptor_set_layouts = layout.set_layouts();
+    println!("{descriptor_set_layouts:?}");
+    let descriptor_set_layout = descriptor_set_layouts.get(0).unwrap();
+
+    let descriptor_set_allocator = StandardDescriptorSetAllocator::new(device.clone());
+
+    let descriptor_set = match PersistentDescriptorSet::new(
+        &descriptor_set_allocator,
+        descriptor_set_layout.clone(),
+        [WriteDescriptorSet::buffer(0, buffer.clone())], // 0 is the binding
+    ) {
+        Ok(res) => res,
+        Err(e) => panic!("Error with {e:?}"),
+    };
 
     builder
         .begin_render_pass(
@@ -133,8 +161,15 @@ fn build_render_pass(
         .unwrap()
         .bind_pipeline_graphics(pipeline.clone())
         .bind_vertex_buffers(0, vertex_buffer.clone())
+        .push_constants(layout.clone(), 0, push_constants)
         .draw(vertex_buffer.len() as u32, 1, 0, 0)
         .unwrap()
+        .bind_descriptor_sets(
+            PipelineBindPoint::Compute,
+            layout.clone(),
+            0,
+            descriptor_set,
+        )
         .end_render_pass()
         .unwrap();
 
@@ -179,7 +214,7 @@ pub fn get_swapchain(
     (swapchain, images)
 }
 
-pub fn recreate_swapchain(
+pub fn recreate_swapchain<T>(
     window: &Window,
     render_pass: &Arc<RenderPass>,
     swapchain: &mut Arc<Swapchain>,
@@ -188,8 +223,10 @@ pub fn recreate_swapchain(
     render_queue: &Arc<Queue>,
     vertex_buffer: &Subbuffer<[CPUVertex]>,
     command_buffers: &mut Vec<Arc<PrimaryAutoCommandBuffer>>,
-	vs: &Arc<ShaderModule>,
-	fs: &Arc<ShaderModule>,
+    vs: &Arc<ShaderModule>,
+    fs: &Arc<ShaderModule>,
+    buffer: &Subbuffer<[T]>,
+    push_constants: init::fs::PushType,
 ) {
     let new_dimensions = window.inner_size();
 
@@ -219,5 +256,7 @@ pub fn recreate_swapchain(
         &new_pipeline,
         &frame_buffers,
         vertex_buffer,
+        push_constants,
+        buffer,
     );
 }

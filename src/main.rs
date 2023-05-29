@@ -25,7 +25,7 @@ struct TestStruct {
 
 fn main() {
     let mut world: Vec<Padded<Material, PADDING>> = Vec::new();
-    let work_groups = [2usize.pow(0) as u32, 1, 1];
+    let work_groups = [2usize.pow(4) as u32, 1, 1];
     for i in 1..(64 * work_groups[0]) {
         let i_f = i as f32;
         world.push(Padded(Material {

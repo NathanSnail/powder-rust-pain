@@ -154,7 +154,8 @@ pub fn initialize_window_from_preexisting(
         .clone()
         .downcast::<Window>()
         .unwrap();
-    let (swapchain, images) = utils::get_swapchain(&physical_device, &device, &window, surface.clone());
+    let (swapchain, images) =
+        utils::get_swapchain(&physical_device, &device, &window, surface.clone());
     let window_size = window.inner_size();
     WindowInitialized {
         physical_device, // cool rust feature you don't need field names if its the same
@@ -167,13 +168,14 @@ pub fn initialize_window_from_preexisting(
     }
 }
 
-pub fn initialize_swapchain_screen(
+pub fn initialize_swapchain_screen<T>(
     render_physical_device: Arc<PhysicalDevice>,
     render_device: Arc<Device>,
     window: Arc<Window>,
     surface: Arc<Surface>,
     window_size: PhysicalSize<u32>,
     render_queue: Arc<Queue>,
+    buffer: &Subbuffer<[T]>,
 ) -> (
     std::sync::Arc<vulkano::swapchain::Swapchain>,
     bool,
@@ -240,13 +242,17 @@ pub fn initialize_swapchain_screen(
         render_pass.clone(),
         viewport.clone(),
     );
-
+    let push_constants = fs::PushType {
+        dims: [window_size.width as f32, window_size.height as f32],
+    };
     let command_buffers = utils::get_command_buffers(
         &render_device,
         &render_queue,
         &render_pipeline,
         &frame_buffers,
         &vertex_buffer,
+        push_constants,
+        buffer,
     );
 
     (
@@ -263,14 +269,14 @@ pub fn initialize_swapchain_screen(
     )
 }
 
-mod vs {
+pub mod vs {
     vulkano_shaders::shader! {
         ty: "vertex",
         path:"src/shaders/test/test_vert.vert"
     }
 }
 
-mod fs {
+pub mod fs {
     vulkano_shaders::shader! {
         ty: "fragment",
         path:"src/shaders/test/test_frag.frag"
