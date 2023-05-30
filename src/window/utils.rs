@@ -165,7 +165,7 @@ fn build_render_pass<T>(
         .draw(vertex_buffer.len() as u32, 1, 0, 0)
         .unwrap()
         .bind_descriptor_sets(
-            PipelineBindPoint::Compute,
+            PipelineBindPoint::Graphics,
             layout.clone(),
             0,
             descriptor_set,

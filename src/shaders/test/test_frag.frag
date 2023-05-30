@@ -1,16 +1,16 @@
 #version 460
 
 struct Material {
-	vec3 colour;// 12
-	uint id;// 16
-	vec2 pos;// 24
-	vec2 vel;// 32
-	vec2 target;// 40
-	float mass;// 44
-	float force;// 48
-	float stable;// 52
-	uint tags;// 56
-	uint gas;// 60
+	vec3 colour; // 12
+	uint id; // 16
+	vec2 pos; // 24
+	vec2 vel; // 32
+	vec2 target; // 40
+	float mass; // 44
+	float force; // 48
+	float stable; // 52
+	uint tags; // 56
+	uint gas; // 60
 };
 
 layout(binding = 0) buffer Data {
