@@ -11,7 +11,7 @@ mod simulation;
 mod window;
 
 use simulation::sand::{sand_shader::Material, PADDING};
-use winit::event_loop;
+
 
 #[derive(BufferContents)]
 #[repr(C)]

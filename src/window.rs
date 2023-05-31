@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::deploy_shader;
-use crate::pass_structs::WindowInitialized;
+
 use crate::simulation::sand::{self, sand_shader::Material, PADDING};
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::{
@@ -9,7 +9,7 @@ use vulkano::command_buffer::{
     PrimaryCommandBufferAbstract,
 };
 use vulkano::device::physical::PhysicalDevice;
-use vulkano::device::{physical, Device, Queue};
+use vulkano::device::{Device, Queue};
 use vulkano::memory::allocator::GenericMemoryAllocator;
 use vulkano::padded::Padded;
 use vulkano::swapchain::{acquire_next_image, SwapchainPresentInfo};
@@ -29,7 +29,7 @@ mod utils;
 const FPS_DISPLAY: bool = true;
 
 pub fn make_window(
-    library: Arc<VulkanLibrary>,
+    _library: Arc<VulkanLibrary>,
     compute_memory_allocator: GenericMemoryAllocator<
         std::sync::Arc<vulkano::memory::allocator::FreeListAllocator>,
     >,

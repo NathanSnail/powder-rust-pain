@@ -49,7 +49,7 @@ pub fn construct_gpu() -> (
         .clone()
         .downcast::<Window>()
         .unwrap();
-    let (physical_device, queue_family_index) = instance
+    let (physical_device, _queue_family_index) = instance
         .enumerate_physical_devices()
         .expect("failed to get devices")
         .filter(|p| p.supported_extensions().contains(&device_extensions))
