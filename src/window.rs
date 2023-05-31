@@ -233,26 +233,28 @@ pub fn make_window(
             if FPS_DISPLAY {
                 fps::do_fps(&mut frames, &mut cur_frame, &mut time);
             }
-            
 
-            next_future = Option::from(sand::tick( //TODO 1 frame of lag is broken due to binding buffer to render.
-                &device.clone(),
-                &compute_queue.clone(),
-                deploy_command.clone(),
-            ));
-			if next_future.is_some() {
-                match next_future.as_ref().unwrap().wait(None) {
-                    Ok(_) => {}
-                    Err(err) => {
-                        panic!("{err:?}")
+            for _ in 0..10 {
+                next_future = Option::from(sand::tick(
+                    //TODO 1 frame of lag is broken due to binding buffer to render.
+                    &device.clone(),
+                    &compute_queue.clone(),
+                    deploy_command.clone(),
+                ));
+                if next_future.is_some() {
+                    match next_future.as_ref().unwrap().wait(None) {
+                        Ok(_) => {}
+                        Err(err) => {
+                            panic!("{err:?}")
+                        }
                     }
+                    // let _binding = world_buffer_inaccessible.read().unwrap();
+                    // for (key, val) in binding.iter().enumerate() {
+                    //     if key <= 1 {
+                    //         println!("{val:?}");
+                    //     }
+                    // }
                 }
-                // let _binding = world_buffer_inaccessible.read().unwrap();
-                // for (key, val) in binding.iter().enumerate() {
-                //     if key <= 1 {
-                //         println!("{val:?}");
-                //     }
-                // }
             }
         }
         _ => (),

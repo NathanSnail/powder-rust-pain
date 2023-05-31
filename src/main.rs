@@ -25,13 +25,13 @@ struct TestStruct {
 
 fn main() {
     let mut world: Vec<Padded<Material, PADDING>> = Vec::new();
-    let work_groups = [2usize.pow(8) as u32, 1, 1]; //2^4*64 points
+    let work_groups = [2usize.pow(4) as u32, 1, 1]; //2^4*64 points
     for i in 0..(64 * work_groups[0]) {
         let i_f = i as f32;
         world.push(Padded(Material {
             id: i,
-            colour: [i_f / 100f32, i_f / 100f32, i_f / 100f32],
-            pos: [i_f, 32f32],
+            colour: [i_f / (64.0 * work_groups[0] as f32), i_f / (64.0 * work_groups[0] as f32), i_f / (64.0 * work_groups[0] as f32)],
+            pos: [i_f / (64.0 * work_groups[0] as f32), i_f / (64.0 * work_groups[0] as f32)],
             ..Default::default()
         }));
     }
@@ -45,8 +45,8 @@ fn main() {
         mut queues,
         window,
         surface,
-		event_loop,
-		window_size,
+        event_loop,
+        window_size,
     ) = gpu_constructor::construct_gpu();
     // -=-=-=-=-=
 
@@ -68,8 +68,8 @@ fn main() {
         physical_device,
         window,
         surface,
-		event_loop,
-		window_size,
+        event_loop,
+        window_size,
     );
     //main.rs is done now as window now has control
 }

@@ -15,17 +15,43 @@ struct Material {
 
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
-layout(binding = 0) buffer Data {
+layout(binding = 0) buffer Data { // eventually need double buffer for non random results
 	Material mat[];
 }
 buf;
 
 void main() {
 	uint idx = gl_GlobalInvocationID.x;
-	buf.mat[idx].pos.y += 0.00005*(100.0+buf.mat[idx].pos.x);
-	if (buf.mat[idx].pos.y > 10.0)
+	buf.mat[idx].vel.y += 0.00005;
+	for(int i = 0; i < buf.mat.length(); i++)
 	{
-		buf.mat[idx].pos.y = -1.0;
+		vec2 dir = buf.mat[idx].pos-buf.mat[i].pos;
+		if (length(dir) <= 0.02 && i != idx) // diameter
+		{
+			buf.mat[idx].vel += (0.02-length(dir))/10.0*dir/length(dir);
+			buf.mat[idx].pos += dir/2.0;
+		}
 	}
-	// buf.mat[idx].colour+=vec3(0.1);
+	buf.mat[idx].pos += buf.mat[idx].vel/100.0;
+	buf.mat[idx].pos.x = min(1.0,max(buf.mat[idx].pos.x,0.0));
+	// buf.mat[idx].pos.x = mod(buf.mat[idx].pos.x,1.0);
+	buf.mat[idx].pos.y = min(1.0,max(buf.mat[idx].pos.y,0.0));
+	// if (buf.mat[idx].pos.x <= 0.005)
+	// {
+	// 	buf.mat[idx].pos.x += 0.0006;
+	// }
+	// else if (buf.mat[idx].pos.x >= 0.995)
+	// {
+	// 	buf.mat[idx].pos.x -= 0.0006;
+	// }
+
+	// if (buf.mat[idx].pos.y <= 0.005)
+	// {
+	// 	buf.mat[idx].pos.y += 0.0006;
+	// }
+	// else if (buf.mat[idx].pos.y >= 0.995)
+	// {
+	// 	buf.mat[idx].pos.y -= 0.0006;
+	// }
+	buf.mat[idx].vel *= 0.99;
 }
