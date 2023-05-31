@@ -234,7 +234,7 @@ pub fn make_window(
                 fps::do_fps(&mut frames, &mut cur_frame, &mut time);
             }
 
-            for _ in 0..10 {
+            for _ in 0..5 {
                 next_future = Option::from(sand::tick(
                     //TODO 1 frame of lag is broken due to binding buffer to render.
                     &device.clone(),

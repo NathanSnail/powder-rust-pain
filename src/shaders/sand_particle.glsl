@@ -22,36 +22,37 @@ buf;
 
 void main() {
 	uint idx = gl_GlobalInvocationID.x;
-	buf.mat[idx].vel.y += 0.00005;
+	buf.mat[idx].vel.y += 0.0005;
 	for(int i = 0; i < buf.mat.length(); i++)
 	{
 		vec2 dir = buf.mat[idx].pos-buf.mat[i].pos;
-		if (length(dir) <= 0.02 && i != idx) // diameter
+		float size = min(length(dir),0.000001); 
+		if (size < 0.02 && i != idx) // diameter
 		{
-			buf.mat[idx].vel += (0.02-length(dir))/10.0*dir/length(dir);
-			buf.mat[idx].pos += dir/2.0;
+			buf.mat[idx].vel += (0.02-size)*dir/size*5.0;
+			// buf.mat[idx].pos += dir/4.0;
 		}
 	}
 	buf.mat[idx].pos += buf.mat[idx].vel/100.0;
 	buf.mat[idx].pos.x = min(1.0,max(buf.mat[idx].pos.x,0.0));
 	// buf.mat[idx].pos.x = mod(buf.mat[idx].pos.x,1.0);
 	buf.mat[idx].pos.y = min(1.0,max(buf.mat[idx].pos.y,0.0));
-	// if (buf.mat[idx].pos.x <= 0.005)
-	// {
-	// 	buf.mat[idx].pos.x += 0.0006;
-	// }
-	// else if (buf.mat[idx].pos.x >= 0.995)
-	// {
-	// 	buf.mat[idx].pos.x -= 0.0006;
-	// }
+	if (buf.mat[idx].pos.x <= 0.0005)
+	{
+		buf.mat[idx].pos.x += 0.0006;
+	}
+	else if (buf.mat[idx].pos.x >= 0.995)
+	{
+		buf.mat[idx].pos.x -= 0.0006;
+	}
 
-	// if (buf.mat[idx].pos.y <= 0.005)
-	// {
-	// 	buf.mat[idx].pos.y += 0.0006;
-	// }
-	// else if (buf.mat[idx].pos.y >= 0.995)
-	// {
-	// 	buf.mat[idx].pos.y -= 0.0006;
-	// }
-	buf.mat[idx].vel *= 0.99;
+	if (buf.mat[idx].pos.y <= 0.005)
+	{
+		buf.mat[idx].pos.y += 0.0006;
+	}
+	else if (buf.mat[idx].pos.y >= 0.995)
+	{
+		buf.mat[idx].pos.y -= 0.0006;
+	}
+	buf.mat[idx].vel *= 0.999;
 }
