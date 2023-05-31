@@ -5,13 +5,12 @@ use vulkano::command_buffer::CommandBufferExecFuture;
 use vulkano::device::physical::PhysicalDevice;
 use vulkano::device::Queue;
 use vulkano::device::{
-    physical::PhysicalDeviceType, Device, DeviceCreateInfo, DeviceExtensions, QueueCreateInfo,
-    QueueFlags,
+    Device,
 };
 
-use vulkano::instance::{Instance, InstanceCreateInfo};
 
-use vulkano::VulkanLibrary;
+
+
 
 use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator};
 use vulkano::pipeline::graphics::viewport::Viewport;
@@ -20,13 +19,13 @@ use vulkano::shader::ShaderModule;
 use vulkano::swapchain::{PresentFuture, Surface, SwapchainAcquireFuture};
 use vulkano::sync::future::{FenceSignalFuture, JoinFuture};
 use vulkano::sync::GpuFuture;
-use vulkano_win::VkSurfaceBuild;
+
 
 use winit::dpi::PhysicalSize;
-use winit::event_loop::EventLoop;
-use winit::window::{Window, WindowBuilder};
 
-use crate::pass_structs::WindowInitialized;
+use winit::window::{Window};
+
+
 
 use super::utils::{self, CPUVertex};
 
