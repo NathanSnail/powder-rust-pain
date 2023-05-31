@@ -22,6 +22,10 @@ buf;
 
 void main() {
 	uint idx = gl_GlobalInvocationID.x;
-	buf.mat[idx].tags += 1;
+	buf.mat[idx].pos.y += 0.00005*(100.0+buf.mat[idx].pos.x);
+	if (buf.mat[idx].pos.y > 10.0)
+	{
+		buf.mat[idx].pos.y = -1.0;
+	}
 	// buf.mat[idx].colour+=vec3(0.1);
 }

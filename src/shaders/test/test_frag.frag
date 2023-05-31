@@ -27,6 +27,14 @@ layout(location = 0) out vec4 f_color;
 
 void main() {
 	vec2 uv = gl_FragCoord.xy / PushConstants.dims;
-	Material _ = buf.mat[0];
-	f_color = vec4(uv.x, uv.y, 0., 1.);
+	Material _ = buf.mat[0]; // needs to be used or it deletes the buffer, if we use it later this isn't needed - just for testing.
+	float c = 1.0;
+	for(int i = 0; i < buf.mat.length(); i++)
+	{
+		if (length(buf.mat[i].pos/64.0-uv) < 0.01)
+		{
+			c = 0.0;
+		}
+	}
+	f_color = vec4(c, c, c, 1.);
 }

@@ -233,7 +233,14 @@ pub fn make_window(
             if FPS_DISPLAY {
                 fps::do_fps(&mut frames, &mut cur_frame, &mut time);
             }
-            if next_future.is_some() {
+            
+
+            next_future = Option::from(sand::tick( //TODO 1 frame of lag is broken due to binding buffer to render.
+                &device.clone(),
+                &compute_queue.clone(),
+                deploy_command.clone(),
+            ));
+			if next_future.is_some() {
                 match next_future.as_ref().unwrap().wait(None) {
                     Ok(_) => {}
                     Err(err) => {
@@ -247,13 +254,6 @@ pub fn make_window(
                 //     }
                 // }
             }
-
-            next_future = Option::from(sand::tick(
-                // 1 frame of lag
-                &device.clone(),
-                &compute_queue.clone(),
-                deploy_command.clone(),
-            ));
         }
         _ => (),
     });
