@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::deploy_shader;
 
+use crate::simulation::sand::make_innacessible_buffer;
 use crate::simulation::sand::{self, sand_shader::Material, PADDING};
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::{
@@ -35,7 +36,7 @@ pub fn make_window(
     >,
     device: Arc<Device>,
     compute_queue: Arc<Queue>,
-    world: Vec<Padded<Material, PADDING>>,
+    world: Vec<[Padded<Material, PADDING>; 2]>,
     work_groups: [u32; 3],
     physical_device: Arc<PhysicalDevice>,
     window: Arc<Window>,
@@ -63,44 +64,52 @@ pub fn make_window(
     let mut cur_frame = 0;
     let mut time = 0f64;
     //compute
-    let world_buffer_accessible =
-        sand::upload_transfer_source_buffer(world, &compute_memory_allocator);
-    let world_buffer_inaccessible =
-        sand::upload_device_buffer(&compute_memory_allocator, (work_groups[0] * 64) as u64);
+    // let world_buffer_accessible =
+    //     sand::upload_transfer_source_buffer(world, &compute_memory_allocator);
+    // let world_buffer_inaccessible =
+    //     sand::upload_device_buffer(&compute_memory_allocator, (work_groups[0] * 64) as u64);
 
-    // Create one-time command to copy between the buffers.
-    let command_buffer_allocator =
-        StandardCommandBufferAllocator::new(device.clone(), Default::default());
-    let mut command_buffer_builder = AutoCommandBufferBuilder::primary(
-        &command_buffer_allocator,
-        compute_queue.queue_family_index(),
-        CommandBufferUsage::OneTimeSubmit,
-    )
-    .unwrap();
-    command_buffer_builder
-        .copy_buffer(CopyBufferInfo::buffers(
-            world_buffer_accessible,
-            world_buffer_inaccessible.clone(),
-        ))
-        .unwrap();
-    let command_buffer = command_buffer_builder.build().unwrap();
+    // // Create one-time command to copy between the buffers.
+    // let command_buffer_allocator =
+    //     StandardCommandBufferAllocator::new(device.clone(), Default::default());
+    // let mut command_buffer_builder = AutoCommandBufferBuilder::primary(
+    //     &command_buffer_allocator,
+    //     compute_queue.queue_family_index(),
+    //     CommandBufferUsage::OneTimeSubmit,
+    // )
+    // .unwrap();
+    // command_buffer_builder
+    //     .copy_buffer(CopyBufferInfo::buffers(
+    //         world_buffer_accessible,
+    //         world_buffer_inaccessible.clone(),
+    //     ))
+    //     .unwrap();
+    // let command_buffer = command_buffer_builder.build().unwrap();
 
-    // Execute copy and wait for copy to complete before proceeding.
-    command_buffer
-        .execute(compute_queue.clone())
-        .unwrap()
-        .then_signal_fence_and_flush()
-        .unwrap()
-        .wait(None)
-        .unwrap();
-    // Transfer complete
+    // // Execute copy and wait for copy to complete before proceeding.
+    // command_buffer
+    //     .execute(compute_queue.clone())
+    //     .unwrap()
+    //     .then_signal_fence_and_flush()
+    //     .unwrap()
+    //     .wait(None)
+    //     .unwrap();
+    // // Transfer complete
+    let world_buffer_inaccessible = make_innacessible_buffer(
+        world,
+        &compute_memory_allocator,
+        &work_groups,
+        &device,
+        &compute_queue,
+    );
+    // let world_buffer_inaccessible_secondary = make_innacessible_buffer(world, &compute_memory_allocator, &work_groups, &device, &compute_queue);
     let compute_shader_loaded =
         sand::sand_shader::load(device.clone()).expect("Failed to create compute shader.");
     let deploy_command = Arc::new(deploy_shader::get_deploy_command(
         &compute_shader_loaded,
         &device,
         &compute_queue,
-        &world_buffer_inaccessible,
+        vec![world_buffer_inaccessible.clone()],
         work_groups,
     ));
 

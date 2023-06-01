@@ -65,7 +65,7 @@ pub fn initialize_swapchain_screen<T>(
     let frame_buffers = utils::get_framebuffers(&images, render_pass.clone());
 
     let render_memory_allocator = StandardMemoryAllocator::new_default(render_device.clone());
-
+	
     let vertex1 = utils::CPUVertex {
         position: [-1.0, -1.0],
     };

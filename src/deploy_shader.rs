@@ -1,5 +1,6 @@
 use crate::sync::future::FenceSignalFuture;
 use crate::sync::future::NowFuture;
+use std::iter::Enumerate;
 use std::sync::Arc;
 use vulkano::buffer::Subbuffer;
 use vulkano::command_buffer::PrimaryAutoCommandBuffer;
@@ -32,7 +33,7 @@ pub fn get_deploy_command<T>(
     shader: &Arc<ShaderModule>,
     device: &Arc<Device>,
     queue: &Arc<Queue>,
-    buffer: &Subbuffer<[T]>,
+    buffers: Vec<Subbuffer<[T]>>,
     work_group_counts: [u32; 3],
 ) -> vulkano::command_buffer::PrimaryAutoCommandBuffer {
     let compute_pipeline = ComputePipeline::new(
@@ -51,11 +52,14 @@ pub fn get_deploy_command<T>(
     let descriptor_set_layout = descriptor_set_layouts
         .get(descriptor_set_layout_index)
         .unwrap();
-
+	let mut write_descriptor_sets: Vec<WriteDescriptorSet> = Vec::new();
+	for (key,elem) in buffers.iter().enumerate() {
+		write_descriptor_sets.push(WriteDescriptorSet::buffer(key as u32,elem.clone()));
+	}
     let descriptor_set = match PersistentDescriptorSet::new(
         &descriptor_set_allocator,
         descriptor_set_layout.clone(),
-        [WriteDescriptorSet::buffer(0, buffer.clone())], // 0 is the binding
+        write_descriptor_sets,
     ) {
         Ok(res) => res,
         Err(e) => panic!("Error with {e:?}"),

@@ -27,13 +27,14 @@ layout(location = 0) out vec4 f_color;
 
 void main() {
 	vec2 uv = gl_FragCoord.xy / PushConstants.dims;
-	Material _ = buf.mat[0]; // needs to be used or it deletes the buffer, if we use it later this isn't needed - just for testing.
+	// Material _ = buf.mat[0][0]; // needs to be used or it deletes the buffer, if we use it later this isn't needed - just for testing.
 	vec3 c = vec3(0.4,0.45,1.0);
 	for(int i = 0; i < buf.mat.length(); i++)
 	{
 		if (length(buf.mat[i].pos-uv) < 0.01)
 		{
 			c = buf.mat[i].colour;
+			break;
 		}
 	}
 	f_color = vec4(c, 1.);

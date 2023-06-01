@@ -149,7 +149,7 @@ fn build_render_pass<T>(
         Ok(res) => res,
         Err(e) => panic!("Error with {e:?}"),
     };
-	
+
     builder
         .begin_render_pass(
             RenderPassBeginInfo {
