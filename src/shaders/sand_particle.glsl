@@ -39,7 +39,7 @@ void main() {
 		}
 	}
 	// buf.mat[cur_buffer][idx].pos += buf.mat[cur_buffer][idx].vel/100.0;
-	buf.mat[cur_buffer][idx].pos = vec2(float(idx)/128.0);
+	buf.mat[idx][cur_buffer].pos = vec2(float(idx)/64.0);
 	buf.mat[cur_buffer][idx].pos.x = min(1.0,max(buf.mat[cur_buffer][idx].pos.x,0.0));
 	// buf.mat[cur_buffer][idx].pos.x = mod(buf.mat[cur_buffer][idx].pos.x,1.0);
 	buf.mat[cur_buffer][idx].pos.y = min(1.0,max(buf.mat[cur_buffer][idx].pos.y,0.0));
