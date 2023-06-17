@@ -90,14 +90,15 @@ pub fn get_pipeline(
         .unwrap()
 }
 
-pub fn get_command_buffers<T>(
+pub fn get_command_buffers<T,U>(
     device: &Arc<Device>,
     queue: &Arc<Queue>,
     pipeline: &Arc<GraphicsPipeline>,
     frame_buffers: &[Arc<Framebuffer>],
     vertex_buffer: &Subbuffer<[CPUVertex]>,
     push_constants: init::fragment_shader::PushType,
-    buffer: &Subbuffer<[T]>,
+    world_buffer: &Subbuffer<[T]>,
+	entity_buffer: &Subbuffer<[U]>,
 ) -> Vec<Arc<PrimaryAutoCommandBuffer>> {
     let command_buffer_allocator =
         StandardCommandBufferAllocator::new(device.clone(), Default::default());
@@ -111,21 +112,23 @@ pub fn get_command_buffers<T>(
                 vertex_buffer,
                 &command_buffer_allocator,
                 push_constants,
-                buffer,
+                world_buffer,
+				entity_buffer,
                 device,
             )
         })
         .collect()
 }
 
-fn build_render_pass<T>(
+fn build_render_pass<T,U>(
     frame_buffer: &Arc<Framebuffer>,
     queue: &Arc<Queue>,
     pipeline: &Arc<GraphicsPipeline>,
     vertex_buffer: &Subbuffer<[CPUVertex]>,
     command_buffer_allocator: &StandardCommandBufferAllocator,
     push_constants: init::fragment_shader::PushType,
-    buffer: &Subbuffer<[T]>,
+    world_buffer: &Subbuffer<[T]>,
+	entity_buffer: &Subbuffer<[U]>,
     device: &Arc<Device>,
 ) -> Arc<PrimaryAutoCommandBuffer> {
     let mut builder = AutoCommandBufferBuilder::primary(
@@ -144,7 +147,7 @@ fn build_render_pass<T>(
     let descriptor_set = match PersistentDescriptorSet::new(
         &descriptor_set_allocator,
         descriptor_set_layout.clone(),
-        [WriteDescriptorSet::buffer(0, buffer.clone())], // 0 is the binding
+        [WriteDescriptorSet::buffer(0, world_buffer.clone()), WriteDescriptorSet::buffer(1, entity_buffer.clone())], // 0 is the binding
     ) {
         Ok(res) => res,
         Err(e) => panic!("Error with {e:?}"),
@@ -214,7 +217,7 @@ pub fn get_swapchain(
     (swapchain, images)
 }
 
-pub fn recreate_swapchain<T>(
+pub fn recreate_swapchain<T,U>(
     window: &Window,
     render_pass: &Arc<RenderPass>,
     swapchain: &mut Arc<Swapchain>,
@@ -225,7 +228,8 @@ pub fn recreate_swapchain<T>(
     command_buffers: &mut Vec<Arc<PrimaryAutoCommandBuffer>>,
     vs: &Arc<ShaderModule>,
     fs: &Arc<ShaderModule>,
-    buffer: &Subbuffer<[T]>,
+    world_buffer: &Subbuffer<[T]>,
+	entity_buffer: &Subbuffer<[U]>,
     push_constants: init::fragment_shader::PushType,
 ) {
     let new_dimensions = window.inner_size();
@@ -257,6 +261,7 @@ pub fn recreate_swapchain<T>(
         &frame_buffers,
         vertex_buffer,
         push_constants,
-        buffer,
+        world_buffer,
+		entity_buffer,
     );
 }

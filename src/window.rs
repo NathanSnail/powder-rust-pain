@@ -183,6 +183,7 @@ pub fn make_window(
                     &vs,
                     &fs,
                     &world_buffer_inaccessible,
+					&sprite_buffer,
                     init::fragment_shader::PushType {
                         dims: [window_size.width as f32, window_size.height as f32],
                     },

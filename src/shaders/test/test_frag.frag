@@ -23,10 +23,10 @@ layout(binding = 0) buffer Data {
 }
 buf;
 
-layout(binding = 0) buffer Sprites {
-	Sprite sprite[];
+layout(binding = 1) buffer Sprites {
+	Sprite sprites[];
 }
-sprite;
+sprite_buf;
 
 layout( push_constant ) uniform PushType
 {
@@ -36,9 +36,9 @@ layout( push_constant ) uniform PushType
 layout(location = 0) out vec4 f_color;
 
 void main() {
+	Sprite _ = sprite_buf.sprites[0];
 	float radius = 0.02/2.0*1.2; // coeff to hide bg
 	vec2 uv = gl_FragCoord.xy / PushConstants.dims;
-	Material _ = buf.mat[0]; // needs to be used or it deletes the buffer, if we use it later this isn't needed - just for testing.
 	vec3 c = vec3(0.4,0.45,1.0);
 	for(int i = 0; i < buf.mat.length(); i++)
 	{

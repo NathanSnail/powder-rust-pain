@@ -46,7 +46,7 @@ pub fn initialize_swapchain_screen<T,U>(
     surface: Arc<Surface>,
     window_size: PhysicalSize<u32>,
     render_queue: Arc<Queue>,
-    buffer: &Subbuffer<[T]>,
+    world_buffer: &Subbuffer<[T]>,
 	sprite_buffer: &Subbuffer<[U]>,
 ) -> (
     std::sync::Arc<vulkano::swapchain::Swapchain>,
@@ -124,7 +124,8 @@ pub fn initialize_swapchain_screen<T,U>(
         &frame_buffers,
         &vertex_buffer,
         push_constants,
-        buffer,
+        world_buffer,
+		sprite_buffer,
     );
 
     (
