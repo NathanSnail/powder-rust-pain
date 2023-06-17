@@ -137,7 +137,7 @@ pub fn make_innacessible_buffer(
     queue: &Arc<Queue>,
 ) -> vulkano::buffer::Subbuffer<[vulkano::padded::Padded<sand_shader::Material, 4>]> {
     let buffer_accessible = upload_transfer_source_buffer(data, memory_allocator);
-    let buffer_inaccessible = upload_device_buffer(memory_allocator, (work_groups[0] * 64) as u64);
+    let buffer_inaccessible = upload_device_buffer(memory_allocator, (2 * work_groups[0] * 64) as u64);
 
     // Create one-time command to copy between the buffers.
     let command_buffer_allocator =

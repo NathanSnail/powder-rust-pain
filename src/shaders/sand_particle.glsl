@@ -13,7 +13,7 @@ struct Material {
 	uint gas; // 60
 };
 
-layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 
 // layout(push_constant) uniform PushConstantType {
 //     uint cur_buffer;
@@ -28,18 +28,20 @@ void main() {
 	uint cur_buffer = 0;
 	uint idx = gl_GlobalInvocationID.x;
 	buf.mat[cur_buffer][idx].vel.y += 0.0005;
-	for(int i = 0; i < buf.mat[cur_buffer].length(); i++)
+	buf.mat[cur_buffer][idx].colour = vec3(float(buf.mat[cur_buffer].length())/4.0);
+	for(int i = 0; i < buf.mat.length(); i++)
 	{
 		vec2 dir = buf.mat[cur_buffer][idx].pos-buf.mat[cur_buffer][i].pos;
 		float size = length(dir); 
 		if (size < 0.02 && i != idx) // diameter
 		{
-			buf.mat[cur_buffer][idx].vel += (0.02-size)*dir/size*5.0;
+			// buf.mat[cur_buffer][idx].colour = vec3(1.0);
+			buf.mat[cur_buffer][idx].vel += (0.02-size)*dir*50.0;
 			// buf.mat[cur_buffer][idx].pos += dir/4.0;
 		}
 	}
-	// buf.mat[cur_buffer][idx].pos += buf.mat[cur_buffer][idx].vel/100.0;
-	buf.mat[idx][cur_buffer].pos = vec2(float(idx)/64.0);
+	buf.mat[cur_buffer][idx].pos += buf.mat[cur_buffer][idx].vel/100.0;
+	// buf.mat[idx][cur_buffer].pos = vec2(float(idx)/64.0);
 	buf.mat[cur_buffer][idx].pos.x = min(1.0,max(buf.mat[cur_buffer][idx].pos.x,0.0));
 	// buf.mat[cur_buffer][idx].pos.x = mod(buf.mat[cur_buffer][idx].pos.x,1.0);
 	buf.mat[cur_buffer][idx].pos.y = min(1.0,max(buf.mat[cur_buffer][idx].pos.y,0.0));

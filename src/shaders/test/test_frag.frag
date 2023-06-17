@@ -14,7 +14,7 @@ struct Material {
 };
 
 layout(binding = 0) buffer Data {
-	Material mat[];
+	Material[2] mat[];
 }
 buf;
 
@@ -31,9 +31,9 @@ void main() {
 	vec3 c = vec3(0.4,0.45,1.0);
 	for(int i = 0; i < buf.mat.length(); i++)
 	{
-		if (length(buf.mat[i].pos-uv) < 0.01)
+		if (length(buf.mat[i][0].pos-uv) < 0.01)
 		{
-			c = buf.mat[i].colour;
+			c = buf.mat[i][0].colour;
 			break;
 		}
 	}
