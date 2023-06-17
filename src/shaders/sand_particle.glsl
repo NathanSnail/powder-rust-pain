@@ -26,16 +26,17 @@ void main() {
 	for(int i = 0; i < buf.mat.length(); i++)
 	{
 		vec2 dir = buf.mat[idx].pos-buf.mat[i].pos;
-		float size = min(length(dir),0.000001); 
+		float size = length(dir); 
 		if (size < 0.02 && i != idx) // diameter
 		{
-			buf.mat[idx].vel += (0.02-size)*dir/size*5.0;
+			buf.mat[idx].vel += pow((0.02-size)*50.0,0.5)*dir;
 			// buf.mat[idx].pos += dir/4.0;
 		}
 	}
 	buf.mat[idx].pos += buf.mat[idx].vel/100.0;
 	buf.mat[idx].pos.x = min(1.0,max(buf.mat[idx].pos.x,0.0));
 	// buf.mat[idx].pos.x = mod(buf.mat[idx].pos.x,1.0);
+	// buf.mat[idx].pos = vec2(idx/64.0);
 	buf.mat[idx].pos.y = min(1.0,max(buf.mat[idx].pos.y,0.0));
 	if (buf.mat[idx].pos.x <= 0.0005)
 	{
