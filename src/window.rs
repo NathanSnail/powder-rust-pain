@@ -2,6 +2,8 @@ use std::sync::Arc;
 
 use crate::deploy_shader;
 
+use crate::simulation::ecs::{self, Entity};
+use crate::simulation::sand::upload_standard_sprite_buffer;
 use crate::simulation::sand::{self, sand_shader::Material, PADDING};
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::{
@@ -23,7 +25,7 @@ use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::Window;
 
 mod fps;
-mod init;
+pub mod init;
 mod utils;
 
 const FPS_DISPLAY: bool = true;
@@ -42,6 +44,7 @@ pub fn make_window(
     surface: Arc<Surface>,
     event_loop: EventLoop<()>,
     window_size_start: PhysicalSize<u32>,
+    init_entities: Vec<Entity>,
 ) {
     // let WindowInitialized {
     //     physical_device,
@@ -104,6 +107,16 @@ pub fn make_window(
         work_groups,
     ));
 
+    let mut entities = init_entities;
+
+    let mut sprites_collection = entities
+        .clone()
+        .into_iter()
+        .map(|e| Padded(e.sprite))
+        .collect();
+    let sprite_buffer =
+        upload_standard_sprite_buffer(sprites_collection, &compute_memory_allocator);
+
     let mut window_size = window_size_start;
     let (
         mut swapchain,
@@ -124,6 +137,7 @@ pub fn make_window(
         window_size,
         compute_queue.clone(),
         &world_buffer_inaccessible,
+        &sprite_buffer,
     );
 
     let mut next_future: Option<FenceSignalFuture<CommandBufferExecFuture<NowFuture>>> = None;
@@ -169,7 +183,7 @@ pub fn make_window(
                     &vs,
                     &fs,
                     &world_buffer_inaccessible,
-                    init::fs::PushType {
+                    init::fragment_shader::PushType {
                         dims: [window_size.width as f32, window_size.height as f32],
                     },
                 );
@@ -254,6 +268,9 @@ pub fn make_window(
                     //         println!("{val:?}");
                     //     }
                     // }
+                }
+                for entity in &mut entities {
+                    ecs::tick(entity);
                 }
             }
         }

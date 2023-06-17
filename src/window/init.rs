@@ -39,7 +39,7 @@ type FenceExpanded = Option<
     >,
 >;
 
-pub fn initialize_swapchain_screen<T>(
+pub fn initialize_swapchain_screen<T,U>(
     render_physical_device: Arc<PhysicalDevice>,
     render_device: Arc<Device>,
     window: Arc<Window>,
@@ -47,6 +47,7 @@ pub fn initialize_swapchain_screen<T>(
     window_size: PhysicalSize<u32>,
     render_queue: Arc<Queue>,
     buffer: &Subbuffer<[T]>,
+	sprite_buffer: &Subbuffer<[U]>,
 ) -> (
     std::sync::Arc<vulkano::swapchain::Swapchain>,
     bool,
@@ -92,8 +93,8 @@ pub fn initialize_swapchain_screen<T>(
     )
     .unwrap();
 
-    let vs_loaded = vs::load(render_device.clone()).expect("failed to create shader module");
-    let fs_loaded = fs::load(render_device.clone()).expect("failed to create shader module");
+    let vs_loaded = vertex_shader::load(render_device.clone()).expect("failed to create shader module");
+    let fs_loaded = fragment_shader::load(render_device.clone()).expect("failed to create shader module");
 
     let viewport = Viewport {
         origin: [0.0, 0.0],
@@ -113,7 +114,7 @@ pub fn initialize_swapchain_screen<T>(
         render_pass.clone(),
         viewport.clone(),
     );
-    let push_constants = fs::PushType {
+    let push_constants = fragment_shader::PushType {
         dims: [window_size.width as f32, window_size.height as f32],
     };
     let command_buffers = utils::get_command_buffers(
@@ -140,14 +141,14 @@ pub fn initialize_swapchain_screen<T>(
     )
 }
 
-pub mod vs {
+pub mod vertex_shader {
     vulkano_shaders::shader! {
         ty: "vertex",
         path:"src/shaders/test/test_vert.vert"
     }
 }
 
-pub mod fs {
+pub mod fragment_shader {
     vulkano_shaders::shader! {
         ty: "fragment",
         path:"src/shaders/test/test_frag.frag"

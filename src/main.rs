@@ -1,3 +1,4 @@
+use simulation::ecs::{Entity, Script};
 use vulkano::buffer::BufferContents;
 
 use vulkano::memory::allocator::{GenericMemoryAllocator, StandardMemoryAllocator};
@@ -11,7 +12,7 @@ mod simulation;
 mod window;
 
 use simulation::sand::{sand_shader::Material, PADDING};
-
+use window::init::fragment_shader::Sprite;
 
 #[derive(BufferContents)]
 #[repr(C)]
@@ -25,13 +26,20 @@ struct TestStruct {
 
 fn main() {
     let mut world: Vec<Padded<Material, PADDING>> = Vec::new();
-    let work_groups = [2usize.pow(4) as u32, 1, 1]; //2^4*64 points
+    let work_groups = [2usize.pow(6) as u32, 1, 1]; //2^4*64 points
     for i in 0..(64 * work_groups[0]) {
         let i_f = i as f32;
         world.push(Padded(Material {
             id: i,
-            colour: [i_f / (64.0 * work_groups[0] as f32), i_f / (64.0 * work_groups[0] as f32), i_f / (64.0 * work_groups[0] as f32)],
-            pos: [i_f / (64.0 * work_groups[0] as f32), i_f / (64.0 * work_groups[0] as f32)],
+            colour: [
+                i_f / (64.0 * work_groups[0] as f32),
+                i_f / (64.0 * work_groups[0] as f32),
+                i_f / (64.0 * work_groups[0] as f32),
+            ],
+            pos: [
+                i_f / (64.0 * work_groups[0] as f32),
+                i_f / (64.0 * work_groups[0] as f32),
+            ],
             ..Default::default()
         }));
     }
@@ -56,6 +64,14 @@ fn main() {
         std::sync::Arc<vulkano::memory::allocator::FreeListAllocator>,
     > = StandardMemoryAllocator::new_default(device.clone());
 
+    let mut entities = vec![Entity {
+        pos: [0f32, 0f32],
+        sprite: Sprite {
+            pos: [0f32, 0f32],
+            offset: [0f32, 0f32],
+        },
+        scripts: vec![Script {}],
+    }];
     // let data2 = 0..64; //staging, gpu 1, gpu 2, download (eventually)
 
     window::make_window(
@@ -70,6 +86,7 @@ fn main() {
         surface,
         event_loop,
         window_size,
+        entities,
     );
     //main.rs is done now as window now has control
 }

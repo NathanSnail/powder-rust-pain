@@ -8,6 +8,7 @@ use vulkano::padded::Padded;
 use vulkano::sync::future::{FenceSignalFuture, NowFuture};
 
 use crate::deploy_shader;
+use crate::window::init::fragment_shader;
 use vulkano::memory::allocator::{AllocationCreateInfo, MemoryAllocator, MemoryUsage};
 
 pub mod sand_shader {
@@ -64,24 +65,24 @@ pub fn upload_device_buffer(
     .expect("failed to create buffer")
 }
 ///! Slow and generally shouldn't be used, use a device and transfer buffer with download.
-// pub fn upload_standard_buffer(
-//     data: Vec<Padded<sand_shader::Material, PADDING>>,
-//     memory_allocator: &(impl MemoryAllocator + ?Sized),
-// ) -> Subbuffer<[Padded<sand_shader::Material, PADDING>]> {
-//     Buffer::from_iter(
-//         memory_allocator,
-//         BufferCreateInfo {
-//             usage: BufferUsage::STORAGE_BUFFER,
-//             ..Default::default()
-//         },
-//         AllocationCreateInfo {
-//             usage: MemoryUsage::Upload,
-//             ..Default::default()
-//         },
-//         data,
-//     )
-//     .expect("failed to create buffer")
-// }
+pub fn upload_standard_sprite_buffer(
+    data: Vec<Padded<fragment_shader::Sprite,0>>,
+    memory_allocator: &(impl MemoryAllocator + ?Sized),
+) -> Subbuffer<[Padded<fragment_shader::Sprite, 0>]> {
+    Buffer::from_iter(
+        memory_allocator,
+        BufferCreateInfo {
+            usage: BufferUsage::STORAGE_BUFFER,
+            ..Default::default()
+        },
+        AllocationCreateInfo {
+            usage: MemoryUsage::Upload,
+            ..Default::default()
+        },
+        data,
+    )
+    .expect("failed to create buffer")
+}
 
 pub fn upload_transfer_source_buffer(
     data: Vec<Padded<sand_shader::Material, PADDING>>,

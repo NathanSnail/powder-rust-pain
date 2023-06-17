@@ -96,7 +96,7 @@ pub fn get_command_buffers<T>(
     pipeline: &Arc<GraphicsPipeline>,
     frame_buffers: &[Arc<Framebuffer>],
     vertex_buffer: &Subbuffer<[CPUVertex]>,
-    push_constants: init::fs::PushType,
+    push_constants: init::fragment_shader::PushType,
     buffer: &Subbuffer<[T]>,
 ) -> Vec<Arc<PrimaryAutoCommandBuffer>> {
     let command_buffer_allocator =
@@ -124,7 +124,7 @@ fn build_render_pass<T>(
     pipeline: &Arc<GraphicsPipeline>,
     vertex_buffer: &Subbuffer<[CPUVertex]>,
     command_buffer_allocator: &StandardCommandBufferAllocator,
-    push_constants: init::fs::PushType,
+    push_constants: init::fragment_shader::PushType,
     buffer: &Subbuffer<[T]>,
     device: &Arc<Device>,
 ) -> Arc<PrimaryAutoCommandBuffer> {
@@ -226,7 +226,7 @@ pub fn recreate_swapchain<T>(
     vs: &Arc<ShaderModule>,
     fs: &Arc<ShaderModule>,
     buffer: &Subbuffer<[T]>,
-    push_constants: init::fs::PushType,
+    push_constants: init::fragment_shader::PushType,
 ) {
     let new_dimensions = window.inner_size();
 
