@@ -15,6 +15,7 @@ use vulkano::device::{
 use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator};
 use vulkano::pipeline::graphics::viewport::Viewport;
 use vulkano::render_pass::RenderPass;
+use vulkano::sampler::Sampler;
 use vulkano::shader::ShaderModule;
 use vulkano::swapchain::{PresentFuture, Surface, SwapchainAcquireFuture};
 use vulkano::sync::future::{FenceSignalFuture, JoinFuture};
@@ -48,6 +49,7 @@ pub fn initialize_swapchain_screen<T,U>(
     render_queue: Arc<Queue>,
     world_buffer: &Subbuffer<[T]>,
 	sprite_buffer: &Subbuffer<[U]>,
+	sampler: &Arc<Sampler>,
 ) -> (
     std::sync::Arc<vulkano::swapchain::Swapchain>,
     bool,
@@ -113,6 +115,7 @@ pub fn initialize_swapchain_screen<T,U>(
         fs_loaded.clone(),
         render_pass.clone(),
         viewport.clone(),
+		sampler.clone()
     );
     let push_constants = fragment_shader::PushType {
         dims: [window_size.width as f32, window_size.height as f32],

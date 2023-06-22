@@ -1,3 +1,4 @@
+use std::io::Cursor;
 use std::sync::Arc;
 
 use crate::deploy_shader;
@@ -12,8 +13,12 @@ use vulkano::command_buffer::{
 };
 use vulkano::device::physical::PhysicalDevice;
 use vulkano::device::{Device, Queue};
+use vulkano::format::Format;
+use vulkano::image::view::ImageView;
+use vulkano::image::{ImageDimensions, ImmutableImage, MipmapsCount};
 use vulkano::memory::allocator::GenericMemoryAllocator;
 use vulkano::padded::Padded;
+use vulkano::sampler::{Filter, Sampler, SamplerAddressMode, SamplerCreateInfo};
 use vulkano::swapchain::{acquire_next_image, SwapchainPresentInfo};
 use vulkano::swapchain::{AcquireError, Surface};
 use vulkano::sync::future::{FenceSignalFuture, NowFuture};
@@ -32,11 +37,11 @@ const FPS_DISPLAY: bool = true;
 
 pub fn make_window(
     _library: Arc<VulkanLibrary>,
-    compute_memory_allocator: GenericMemoryAllocator<
+    memory_allocator: GenericMemoryAllocator<
         std::sync::Arc<vulkano::memory::allocator::FreeListAllocator>,
     >,
     device: Arc<Device>,
-    compute_queue: Arc<Queue>,
+    queue: Arc<Queue>,
     world: Vec<Padded<Material, PADDING>>,
     work_groups: [u32; 3],
     physical_device: Arc<PhysicalDevice>,
@@ -67,16 +72,16 @@ pub fn make_window(
     let mut time = 0f64;
     //compute
     let world_buffer_accessible =
-        sand::upload_transfer_source_buffer(world, &compute_memory_allocator);
+        sand::upload_transfer_source_buffer(world, &memory_allocator);
     let world_buffer_inaccessible =
-        sand::upload_device_buffer(&compute_memory_allocator, (work_groups[0] * 64) as u64);
+        sand::upload_device_buffer(&memory_allocator, (work_groups[0] * 64) as u64);
 
     // Create one-time command to copy between the buffers.
     let command_buffer_allocator =
         StandardCommandBufferAllocator::new(device.clone(), Default::default());
     let mut command_buffer_builder = AutoCommandBufferBuilder::primary(
         &command_buffer_allocator,
-        compute_queue.queue_family_index(),
+        queue.queue_family_index(),
         CommandBufferUsage::OneTimeSubmit,
     )
     .unwrap();
@@ -90,7 +95,7 @@ pub fn make_window(
 
     // Execute copy and wait for copy to complete before proceeding.
     command_buffer
-        .execute(compute_queue.clone())
+        .execute(queue.clone())
         .unwrap()
         .then_signal_fence_and_flush()
         .unwrap()
@@ -102,7 +107,7 @@ pub fn make_window(
     let deploy_command = Arc::new(deploy_shader::get_deploy_command(
         &compute_shader_loaded,
         &device,
-        &compute_queue,
+        &queue,
         &world_buffer_inaccessible,
         work_groups,
     ));
@@ -115,7 +120,52 @@ pub fn make_window(
         .map(|e| Padded(e.sprite))
         .collect();
     let sprite_buffer =
-        upload_standard_sprite_buffer(sprites_collection, &compute_memory_allocator);
+        upload_standard_sprite_buffer(sprites_collection, &memory_allocator);
+
+    let texture = {
+        let png_bytes = include_bytes!("atlas.png").to_vec();
+        let cursor = Cursor::new(png_bytes);
+        let decoder = png::Decoder::new(cursor);
+        let mut reader = decoder.read_info().unwrap();
+        let info = reader.info();
+        let dimensions = ImageDimensions::Dim2d {
+            width: info.width,
+            height: info.height,
+            array_layers: 1,
+        };
+        let mut image_data = Vec::new();
+        image_data.resize((info.width * info.height * 4) as usize, 0);
+        reader.next_frame(&mut image_data).unwrap();
+		
+		let mut uploads = AutoCommandBufferBuilder::primary(
+			&command_buffer_allocator,
+			queue.queue_family_index(),
+			CommandBufferUsage::OneTimeSubmit,
+		)
+		.unwrap(); // upload our image once
+
+        let image = ImmutableImage::from_iter(
+            &memory_allocator,
+            image_data,
+            dimensions,
+            MipmapsCount::One,
+            Format::R8G8B8A8_SRGB,
+            &mut uploads,
+        )
+        .unwrap();
+        ImageView::new_default(image).unwrap()
+    };
+
+    let sampler = Sampler::new(
+        device.clone(),
+        SamplerCreateInfo {
+            mag_filter: Filter::Nearest,
+            min_filter: Filter::Nearest,
+            address_mode: [SamplerAddressMode::Repeat; 3],
+            ..Default::default()
+        },
+    )
+    .unwrap();
 
     let mut window_size = window_size_start;
     let (
@@ -135,9 +185,10 @@ pub fn make_window(
         window.clone(),
         surface,
         window_size,
-        compute_queue.clone(),
+        queue.clone(),
         &world_buffer_inaccessible,
         &sprite_buffer,
+        &sampler,
     );
 
     let mut next_future: Option<FenceSignalFuture<CommandBufferExecFuture<NowFuture>>> = None;
@@ -177,16 +228,17 @@ pub fn make_window(
                     &mut swapchain,
                     &mut viewport,
                     &device,
-                    &compute_queue,
+                    &queue,
                     &vertex_buffer,
                     &mut command_buffers,
                     &vs,
                     &fs,
                     &world_buffer_inaccessible,
-					&sprite_buffer,
+                    &sprite_buffer,
                     init::fragment_shader::PushType {
                         dims: [window_size.width as f32, window_size.height as f32],
                     },
+                    &sampler,
                 );
             }
 
@@ -223,12 +275,12 @@ pub fn make_window(
             let future = previous_future
                 .join(acquire_future)
                 .then_execute(
-                    compute_queue.clone(),
+                    queue.clone(),
                     command_buffers[image_i as usize].clone(),
                 )
                 .unwrap()
                 .then_swapchain_present(
-                    compute_queue.clone(),
+                    queue.clone(),
                     SwapchainPresentInfo::swapchain_image_index(swapchain.clone(), image_i),
                 )
                 .then_signal_fence_and_flush();
@@ -253,7 +305,7 @@ pub fn make_window(
                 next_future = Option::from(sand::tick(
                     //TODO 1 frame of lag is broken due to binding buffer to render.
                     &device.clone(),
-                    &compute_queue.clone(),
+                    &queue.clone(),
                     deploy_command.clone(),
                 ));
                 if next_future.is_some() {

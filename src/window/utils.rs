@@ -18,6 +18,7 @@ use vulkano::pipeline::graphics::vertex_input::Vertex;
 use vulkano::pipeline::graphics::viewport::{Viewport, ViewportState};
 use vulkano::pipeline::{GraphicsPipeline, Pipeline, PipelineBindPoint};
 use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass};
+use vulkano::sampler::Sampler;
 use vulkano::shader::ShaderModule;
 use vulkano::swapchain::{
     PresentMode, Surface, Swapchain, SwapchainCreateInfo, SwapchainCreationError,
@@ -78,6 +79,7 @@ pub fn get_pipeline(
     fs: Arc<ShaderModule>,
     render_pass: Arc<RenderPass>,
     viewport: Viewport,
+    sampler: Arc<Sampler>,
 ) -> Arc<GraphicsPipeline> {
     GraphicsPipeline::start()
         .vertex_input_state(CPUVertex::per_vertex())
@@ -86,11 +88,15 @@ pub fn get_pipeline(
         .viewport_state(ViewportState::viewport_fixed_scissor_irrelevant([viewport]))
         .fragment_shader(fs.entry_point("main").unwrap(), ())
         .render_pass(Subpass::from(render_pass, 0).unwrap())
-        .build(device)
+        .with_auto_layout(device.clone(), |layout_create_infos| {
+            // Modify the auto-generated layout by setting an immutable sampler to set 0 binding 0.
+            let binding = layout_create_infos[0].bindings.get_mut(&2).unwrap();
+            binding.immutable_samplers = vec![sampler];
+        })
         .unwrap()
 }
 
-pub fn get_command_buffers<T,U>(
+pub fn get_command_buffers<T, U>(
     device: &Arc<Device>,
     queue: &Arc<Queue>,
     pipeline: &Arc<GraphicsPipeline>,
@@ -98,7 +104,7 @@ pub fn get_command_buffers<T,U>(
     vertex_buffer: &Subbuffer<[CPUVertex]>,
     push_constants: init::fragment_shader::PushType,
     world_buffer: &Subbuffer<[T]>,
-	entity_buffer: &Subbuffer<[U]>,
+    entity_buffer: &Subbuffer<[U]>,
 ) -> Vec<Arc<PrimaryAutoCommandBuffer>> {
     let command_buffer_allocator =
         StandardCommandBufferAllocator::new(device.clone(), Default::default());
@@ -113,14 +119,14 @@ pub fn get_command_buffers<T,U>(
                 &command_buffer_allocator,
                 push_constants,
                 world_buffer,
-				entity_buffer,
+                entity_buffer,
                 device,
             )
         })
         .collect()
 }
 
-fn build_render_pass<T,U>(
+fn build_render_pass<T, U>(
     frame_buffer: &Arc<Framebuffer>,
     queue: &Arc<Queue>,
     pipeline: &Arc<GraphicsPipeline>,
@@ -128,7 +134,7 @@ fn build_render_pass<T,U>(
     command_buffer_allocator: &StandardCommandBufferAllocator,
     push_constants: init::fragment_shader::PushType,
     world_buffer: &Subbuffer<[T]>,
-	entity_buffer: &Subbuffer<[U]>,
+    entity_buffer: &Subbuffer<[U]>,
     device: &Arc<Device>,
 ) -> Arc<PrimaryAutoCommandBuffer> {
     let mut builder = AutoCommandBufferBuilder::primary(
@@ -147,12 +153,15 @@ fn build_render_pass<T,U>(
     let descriptor_set = match PersistentDescriptorSet::new(
         &descriptor_set_allocator,
         descriptor_set_layout.clone(),
-        [WriteDescriptorSet::buffer(0, world_buffer.clone()), WriteDescriptorSet::buffer(1, entity_buffer.clone())], // 0 is the binding
+        [
+            WriteDescriptorSet::buffer(0, world_buffer.clone()),
+            WriteDescriptorSet::buffer(1, entity_buffer.clone()),
+        ], // 0 is the binding
     ) {
         Ok(res) => res,
         Err(e) => panic!("Error with {e:?}"),
     };
-	
+
     builder
         .begin_render_pass(
             RenderPassBeginInfo {
@@ -217,7 +226,7 @@ pub fn get_swapchain(
     (swapchain, images)
 }
 
-pub fn recreate_swapchain<T,U>(
+pub fn recreate_swapchain<T, U>(
     window: &Window,
     render_pass: &Arc<RenderPass>,
     swapchain: &mut Arc<Swapchain>,
@@ -229,8 +238,9 @@ pub fn recreate_swapchain<T,U>(
     vs: &Arc<ShaderModule>,
     fs: &Arc<ShaderModule>,
     world_buffer: &Subbuffer<[T]>,
-	entity_buffer: &Subbuffer<[U]>,
+    entity_buffer: &Subbuffer<[U]>,
     push_constants: init::fragment_shader::PushType,
+    sampler: &Arc<Sampler>,
 ) {
     let new_dimensions = window.inner_size();
 
@@ -253,6 +263,7 @@ pub fn recreate_swapchain<T,U>(
         fs.clone(),
         render_pass.clone(),
         viewport.clone(),
+        sampler.clone(),
     );
     *command_buffers = get_command_buffers(
         render_device,
@@ -262,6 +273,6 @@ pub fn recreate_swapchain<T,U>(
         vertex_buffer,
         push_constants,
         world_buffer,
-		entity_buffer,
+        entity_buffer,
     );
 }
