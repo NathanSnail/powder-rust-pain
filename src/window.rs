@@ -141,6 +141,7 @@ pub fn make_window(
         mut fences,
         mut previous_fence_i,
 		sampler,
+		mut previous_frame_end,
     ) = init::initialize_swapchain_screen(
         physical_device,
         device.clone(),
@@ -179,6 +180,10 @@ pub fn make_window(
             recreate_swapchain = true;
         }
         Event::RedrawEventsCleared => {
+			if window_size.width == 0 || window_size.height == 0 {
+                return;
+            }
+
             if recreate_swapchain {
                 // println!("recreating swapchain (slow)");
                 recreate_swapchain = false;

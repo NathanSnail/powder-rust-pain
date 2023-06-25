@@ -65,6 +65,7 @@ pub fn initialize_swapchain_screen<T, U>(
     Vec<FenceExpanded>,
     u32,
 	Arc<Sampler>,
+	Option<Box<dyn GpuFuture>>
 ) {
     let (swapchain, images) =
         utils::get_swapchain(&render_physical_device, &render_device, &window, surface);
@@ -257,7 +258,8 @@ pub fn initialize_swapchain_screen<T, U>(
         vertex_buffer,
         fences,
         previous_fence_i,
-		sampler
+		sampler,
+		previous_frame_end,
     )
 }
 
