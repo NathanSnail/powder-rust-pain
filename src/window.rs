@@ -11,6 +11,8 @@ use vulkano::command_buffer::{
     AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage, CopyBufferInfo,
     PrimaryCommandBufferAbstract,
 };
+use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
+use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::device::physical::PhysicalDevice;
 use vulkano::device::{Device, Queue};
 use vulkano::format::Format;
@@ -18,6 +20,12 @@ use vulkano::image::view::ImageView;
 use vulkano::image::{ImageDimensions, ImmutableImage, MipmapsCount};
 use vulkano::memory::allocator::GenericMemoryAllocator;
 use vulkano::padded::Padded;
+use vulkano::pipeline::graphics::color_blend::ColorBlendState;
+use vulkano::pipeline::graphics::input_assembly::{InputAssemblyState, PrimitiveTopology};
+use vulkano::pipeline::graphics::vertex_input::Vertex;
+use vulkano::pipeline::graphics::viewport::ViewportState;
+use vulkano::pipeline::{GraphicsPipeline, Pipeline};
+use vulkano::render_pass::Subpass;
 use vulkano::sampler::{Filter, Sampler, SamplerAddressMode, SamplerCreateInfo};
 use vulkano::swapchain::{acquire_next_image, SwapchainPresentInfo};
 use vulkano::swapchain::{AcquireError, Surface};
@@ -71,8 +79,7 @@ pub fn make_window(
     let mut cur_frame = 0;
     let mut time = 0f64;
     //compute
-    let world_buffer_accessible =
-        sand::upload_transfer_source_buffer(world, &memory_allocator);
+    let world_buffer_accessible = sand::upload_transfer_source_buffer(world, &memory_allocator);
     let world_buffer_inaccessible =
         sand::upload_device_buffer(&memory_allocator, (work_groups[0] * 64) as u64);
 
@@ -119,53 +126,7 @@ pub fn make_window(
         .into_iter()
         .map(|e| Padded(e.sprite))
         .collect();
-    let sprite_buffer =
-        upload_standard_sprite_buffer(sprites_collection, &memory_allocator);
-
-    let texture = {
-        let png_bytes = include_bytes!("atlas.png").to_vec();
-        let cursor = Cursor::new(png_bytes);
-        let decoder = png::Decoder::new(cursor);
-        let mut reader = decoder.read_info().unwrap();
-        let info = reader.info();
-        let dimensions = ImageDimensions::Dim2d {
-            width: info.width,
-            height: info.height,
-            array_layers: 1,
-        };
-        let mut image_data = Vec::new();
-        image_data.resize((info.width * info.height * 4) as usize, 0);
-        reader.next_frame(&mut image_data).unwrap();
-		
-		let mut uploads = AutoCommandBufferBuilder::primary(
-			&command_buffer_allocator,
-			queue.queue_family_index(),
-			CommandBufferUsage::OneTimeSubmit,
-		)
-		.unwrap(); // upload our image once
-
-        let image = ImmutableImage::from_iter(
-            &memory_allocator,
-            image_data,
-            dimensions,
-            MipmapsCount::One,
-            Format::R8G8B8A8_SRGB,
-            &mut uploads,
-        )
-        .unwrap();
-        ImageView::new_default(image).unwrap()
-    };
-
-    let sampler = Sampler::new(
-        device.clone(),
-        SamplerCreateInfo {
-            mag_filter: Filter::Nearest,
-            min_filter: Filter::Nearest,
-            address_mode: [SamplerAddressMode::Repeat; 3],
-            ..Default::default()
-        },
-    )
-    .unwrap();
+    let sprite_buffer = upload_standard_sprite_buffer(sprites_collection, &memory_allocator);
 
     let mut window_size = window_size_start;
     let (
@@ -179,6 +140,7 @@ pub fn make_window(
         vertex_buffer,
         mut fences,
         mut previous_fence_i,
+		sampler,
     ) = init::initialize_swapchain_screen(
         physical_device,
         device.clone(),
@@ -188,7 +150,6 @@ pub fn make_window(
         queue.clone(),
         &world_buffer_inaccessible,
         &sprite_buffer,
-        &sampler,
     );
 
     let mut next_future: Option<FenceSignalFuture<CommandBufferExecFuture<NowFuture>>> = None;
@@ -238,7 +199,7 @@ pub fn make_window(
                     init::fragment_shader::PushType {
                         dims: [window_size.width as f32, window_size.height as f32],
                     },
-                    &sampler,
+					&sampler,
                 );
             }
 
@@ -274,10 +235,7 @@ pub fn make_window(
 
             let future = previous_future
                 .join(acquire_future)
-                .then_execute(
-                    queue.clone(),
-                    command_buffers[image_i as usize].clone(),
-                )
+                .then_execute(queue.clone(), command_buffers[image_i as usize].clone())
                 .unwrap()
                 .then_swapchain_present(
                     queue.clone(),
