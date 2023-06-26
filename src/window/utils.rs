@@ -10,8 +10,8 @@ use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
 use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::device::physical::PhysicalDevice;
 use vulkano::device::{Device, Queue};
-use vulkano::image::ImageUsage;
 use vulkano::image::{view::ImageView, SwapchainImage};
+use vulkano::image::{ImageAccess, ImageUsage, ImageViewAbstract};
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
 
 use vulkano::pipeline::graphics::vertex_input::Vertex;
@@ -26,6 +26,8 @@ use vulkano::swapchain::{
 use winit::window::Window;
 
 use super::init;
+
+pub type Atlas = Arc<dyn ImageViewAbstract>;
 
 #[derive(BufferContents, Vertex)]
 #[repr(C)]
@@ -88,8 +90,10 @@ pub fn get_pipeline(
         .viewport_state(ViewportState::viewport_fixed_scissor_irrelevant([viewport]))
         .fragment_shader(fs.entry_point("main").unwrap(), ())
         .render_pass(Subpass::from(render_pass, 0).unwrap())
-        .with_auto_layout(device.clone(), |layout_create_infos| {
-            // Modify the auto-generated layout by setting an immutable sampler to set 0 binding 0.
+        .with_auto_layout(device, |layout_create_infos| {
+            // Modify the auto-generated layout by setting an immutable sampler to set 0 binding 2.
+			println!("pipielin got");
+			println!("{layout_create_infos:?}");
             let binding = layout_create_infos[0].bindings.get_mut(&2).unwrap();
             binding.immutable_samplers = vec![sampler];
         })
@@ -105,6 +109,7 @@ pub fn get_command_buffers<T, U>(
     push_constants: init::fragment_shader::PushType,
     world_buffer: &Subbuffer<[T]>,
     entity_buffer: &Subbuffer<[U]>,
+	atlas: Atlas,
 ) -> Vec<Arc<PrimaryAutoCommandBuffer>> {
     let command_buffer_allocator =
         StandardCommandBufferAllocator::new(device.clone(), Default::default());
@@ -121,12 +126,13 @@ pub fn get_command_buffers<T, U>(
                 world_buffer,
                 entity_buffer,
                 device,
+				atlas.clone(),
             )
         })
         .collect()
 }
 
-fn build_render_pass<T, U>(
+pub fn build_render_pass<T, U> (
     frame_buffer: &Arc<Framebuffer>,
     queue: &Arc<Queue>,
     pipeline: &Arc<GraphicsPipeline>,
@@ -136,6 +142,7 @@ fn build_render_pass<T, U>(
     world_buffer: &Subbuffer<[T]>,
     entity_buffer: &Subbuffer<[U]>,
     device: &Arc<Device>,
+	atlas: Atlas,
 ) -> Arc<PrimaryAutoCommandBuffer> {
     let mut builder = AutoCommandBufferBuilder::primary(
         command_buffer_allocator,
@@ -156,7 +163,8 @@ fn build_render_pass<T, U>(
         [
             WriteDescriptorSet::buffer(0, world_buffer.clone()),
             WriteDescriptorSet::buffer(1, entity_buffer.clone()),
-        ], // 0 is the binding
+            WriteDescriptorSet::image_view(2, atlas.clone()),
+        ], // 0..=2 is the binding
     ) {
         Ok(res) => res,
         Err(e) => panic!("Error with {e:?}"),
@@ -241,6 +249,7 @@ pub fn recreate_swapchain<T, U>(
     entity_buffer: &Subbuffer<[U]>,
     push_constants: init::fragment_shader::PushType,
     sampler: &Arc<Sampler>,
+	atlas: Atlas,
 ) {
     let new_dimensions = window.inner_size();
 
@@ -274,5 +283,30 @@ pub fn recreate_swapchain<T, U>(
         push_constants,
         world_buffer,
         entity_buffer,
+		atlas,
     );
+}
+
+pub fn window_size_dependent_setup(
+    images: &[Arc<SwapchainImage>],
+    render_pass: Arc<RenderPass>,
+    viewport: &mut Viewport,
+) -> Vec<Arc<Framebuffer>> {
+    let dimensions = images[0].dimensions().width_height();
+    viewport.dimensions = [dimensions[0] as f32, dimensions[1] as f32];
+
+    images
+        .iter()
+        .map(|image| {
+            let view = ImageView::new_default(image.clone()).unwrap();
+            Framebuffer::new(
+                render_pass.clone(),
+                FramebufferCreateInfo {
+                    attachments: vec![view],
+                    ..Default::default()
+                },
+            )
+            .unwrap()
+        })
+        .collect::<Vec<_>>()
 }

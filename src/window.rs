@@ -8,7 +8,7 @@ use crate::simulation::sand::upload_standard_sprite_buffer;
 use crate::simulation::sand::{self, sand_shader::Material, PADDING};
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::{
-    AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage, CopyBufferInfo,
+    self, AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage, CopyBufferInfo,
     PrimaryCommandBufferAbstract, RenderPassBeginInfo, SubpassContents,
 };
 use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
@@ -24,7 +24,7 @@ use vulkano::pipeline::graphics::color_blend::ColorBlendState;
 use vulkano::pipeline::graphics::input_assembly::{InputAssemblyState, PrimitiveTopology};
 use vulkano::pipeline::graphics::vertex_input::Vertex;
 use vulkano::pipeline::graphics::viewport::ViewportState;
-use vulkano::pipeline::{GraphicsPipeline, Pipeline, PipelineBindPoint};
+use vulkano::pipeline::{layout, GraphicsPipeline, Pipeline, PipelineBindPoint};
 use vulkano::render_pass::Subpass;
 use vulkano::sampler::{Filter, Sampler, SamplerAddressMode, SamplerCreateInfo};
 use vulkano::swapchain::{acquire_next_image, SwapchainPresentInfo};
@@ -36,6 +36,8 @@ use winit::dpi::PhysicalSize;
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::Window;
+
+use self::utils::build_render_pass;
 
 mod fps;
 pub mod init;
@@ -142,8 +144,10 @@ pub fn make_window(
         mut previous_fence_i,
         sampler,
         mut previous_frame_end,
-		pipeline,
-		set,
+        pipeline,
+        set,
+        images,
+        atlas,
     ) = init::initialize_swapchain_screen(
         physical_device,
         device.clone(),
@@ -154,7 +158,8 @@ pub fn make_window(
         &world_buffer_inaccessible,
         &sprite_buffer,
     );
-
+    let mut framebuffers =
+        utils::window_size_dependent_setup(&images, render_pass.clone(), &mut viewport);
     let mut next_future: Option<FenceSignalFuture<CommandBufferExecFuture<NowFuture>>> = None;
 
     event_loop.run(move |event, _, control_flow| match event {
@@ -185,7 +190,8 @@ pub fn make_window(
             if window_size.width == 0 || window_size.height == 0 {
                 return;
             }
-
+            // let t = previous_frame_end.as_mut().is_none();
+            // println!("{t:?}");
             previous_frame_end.as_mut().unwrap().cleanup_finished();
 
             if recreate_swapchain {
@@ -209,6 +215,7 @@ pub fn make_window(
                         dims: [window_size.width as f32, window_size.height as f32],
                     },
                     &sampler,
+                    atlas.clone(),
                 );
             }
 
@@ -230,22 +237,22 @@ pub fn make_window(
                 image_fence.wait(None).unwrap();
             }
 
-            // let previous_future = match fences[previous_fence_i as usize].clone() {
-            //     // Create a NowFuture
-            //     None => {
-            //         let mut now = sync::now(device.clone());
-            //         now.cleanup_finished();
+            let previous_future = match fences[previous_fence_i as usize].clone() {
+                // Create a NowFuture
+                None => {
+                    let mut now = sync::now(device.clone());
+                    now.cleanup_finished();
 
-            //         now.boxed()
-            //     }
-            //     // Use the existing FenceSignalFuture
-            //     Some(fence) => fence.boxed(),
-            // };
+                    now.boxed()
+                }
+                // Use the existing FenceSignalFuture
+                Some(fence) => fence.boxed(),
+            };
 
-			let mut builder = AutoCommandBufferBuilder::primary(
+            let mut builder = AutoCommandBufferBuilder::primary(
                 &command_buffer_allocator,
                 queue.queue_family_index(),
-                CommandBufferUsage::OneTimeSubmit,
+                CommandBufferUsage::MultipleSubmit,
             )
             .unwrap();
             builder
@@ -260,21 +267,42 @@ pub fn make_window(
                 )
                 .unwrap()
                 .set_viewport(0, [viewport.clone()])
-                .bind_pipeline_graphics(pipeline.clone())
                 .bind_descriptor_sets(
                     PipelineBindPoint::Graphics,
                     pipeline.layout().clone(),
                     0,
                     set.clone(),
                 )
+            	.bind_pipeline_graphics(pipeline.clone())
                 .bind_vertex_buffers(0, vertex_buffer.clone())
+                .push_constants(
+                    pipeline.layout().clone(),
+                    0,
+                    init::fragment_shader::PushType {
+                        dims: [window_size.width as f32, window_size.height as f32],
+                    },
+                )
                 .draw(vertex_buffer.len() as u32, 1, 0, 0)
                 .unwrap()
                 .end_render_pass()
                 .unwrap();
             let command_buffer = builder.build().unwrap();
+            // let command_buffer = build_render_pass(
+            //     &framebuffers[0],
+            //     &queue,
+            //     &pipeline,
+            //     &vertex_buffer,
+            //     &command_buffer_allocator,
+            //     init::fragment_shader::PushType {
+            //         dims: [window_size.width as f32, window_size.height as f32],
+            //     },
+            //     &world_buffer_inaccessible,
+            //     &sprite_buffer,
+            //     &device,
+            //     atlas.clone(),
+            // );
 
-			let future = previous_frame_end
+            let future = previous_frame_end
                 .take()
                 .unwrap()
                 .join(acquire_future)
@@ -285,20 +313,6 @@ pub fn make_window(
                     SwapchainPresentInfo::swapchain_image_index(swapchain.clone(), image_index),
                 )
                 .then_signal_fence_and_flush();
-
-            match future {
-                Ok(future) => {
-                    previous_frame_end = Some(future.boxed());
-                }
-                Err(FlushError::OutOfDate) => {
-                    recreate_swapchain = true;
-                    previous_frame_end = Some(sync::now(device.clone()).boxed());
-                }
-                Err(e) => {
-                    println!("failed to flush future: {e}");
-                    previous_frame_end = Some(sync::now(device.clone()).boxed());
-                }
-            }
 
             // let future = previous_future
             //     .join(acquire_future)
@@ -321,7 +335,7 @@ pub fn make_window(
                     None
                 }
             };
-            previous_fence_i = image_index;
+
             if FPS_DISPLAY {
                 fps::do_fps(&mut frames, &mut cur_frame, &mut time);
             }

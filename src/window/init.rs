@@ -4,9 +4,11 @@ use std::sync::Arc;
 use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage, Subbuffer};
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::{
-    AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage, PrimaryCommandBufferAbstract,
+    AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage,
+    PrimaryCommandBufferAbstract,
 };
 use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
+use vulkano::descriptor_set::layout::DescriptorSetLayout;
 use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::device::physical::PhysicalDevice;
 use vulkano::device::Device;
@@ -14,7 +16,7 @@ use vulkano::device::Queue;
 
 use vulkano::format::Format;
 use vulkano::image::view::ImageView;
-use vulkano::image::{ImageDimensions, ImmutableImage, MipmapsCount};
+use vulkano::image::{ImageDimensions, ImmutableImage, MipmapsCount, SwapchainImage};
 use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator};
 use vulkano::pipeline::graphics::color_blend::ColorBlendState;
 use vulkano::pipeline::graphics::input_assembly::{InputAssemblyState, PrimitiveTopology};
@@ -64,10 +66,12 @@ pub fn initialize_swapchain_screen<T, U>(
     Subbuffer<[CPUVertex]>,
     Vec<FenceExpanded>,
     u32,
-	Arc<Sampler>,
-	Option<Box<dyn GpuFuture>>,
-	Arc<GraphicsPipeline>,
-	Arc<PersistentDescriptorSet>,
+    Arc<Sampler>,
+    Option<Box<dyn GpuFuture>>,
+    Arc<GraphicsPipeline>,
+    Arc<PersistentDescriptorSet>,
+    Vec<Arc<SwapchainImage>>,
+    utils::Atlas,
 ) {
     let (swapchain, images) =
         utils::get_swapchain(&render_physical_device, &render_device, &window, surface);
@@ -110,7 +114,7 @@ pub fn initialize_swapchain_screen<T, U>(
     let descriptor_set_allocator = StandardDescriptorSetAllocator::new(render_device.clone());
     let command_buffer_allocator =
         StandardCommandBufferAllocator::new(render_device.clone(), Default::default());
-    let mut uploads = AutoCommandBufferBuilder::primary(
+    let uploads = AutoCommandBufferBuilder::primary(
         &command_buffer_allocator,
         render_queue.queue_family_index(),
         CommandBufferUsage::OneTimeSubmit,
@@ -203,11 +207,15 @@ pub fn initialize_swapchain_screen<T, U>(
     let set = PersistentDescriptorSet::new(
         &descriptor_set_allocator,
         layout.clone(),
-        [WriteDescriptorSet::image_view(2, texture)],
+        [
+            WriteDescriptorSet::buffer(0, world_buffer.clone()),
+            WriteDescriptorSet::buffer(1, sprite_buffer.clone()),
+            WriteDescriptorSet::image_view(2, texture.clone()),
+        ],
     )
     .unwrap();
 
-    let mut previous_frame_end = Some(
+    let previous_frame_end = Some(
         uploads
             .build()
             .unwrap()
@@ -247,6 +255,7 @@ pub fn initialize_swapchain_screen<T, U>(
         push_constants,
         world_buffer,
         sprite_buffer,
+        texture.clone(),
     );
 
     (
@@ -260,10 +269,12 @@ pub fn initialize_swapchain_screen<T, U>(
         vertex_buffer,
         fences,
         previous_fence_i,
-		sampler,
-		previous_frame_end,
-		pipeline,
-		set,
+        sampler,
+        previous_frame_end,
+        pipeline,
+        set,
+        images,
+        texture,
     )
 }
 
