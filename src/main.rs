@@ -67,8 +67,10 @@ fn main() {
     let entities = vec![Entity {
         pos: [0f32, 0f32],
         sprite: Sprite {
-            pos: [0f32, 0f32],
-            offset: [0f32, 0f32],
+            pos: [0.3f32, 0.1f32],
+            size: [0.2f32, 0.5f32],
+            offset: [0.3f32, 0.3f32],
+            scale: [3.0f32, 3.0f32],
         },
         scripts: vec![Script {}],
     }];

@@ -121,13 +121,6 @@ pub fn make_window(
         .collect();
     let sprite_buffer = upload_standard_sprite_buffer(sprites_collection, &memory_allocator);
 
-    let data_temp = vec![Padded::<init::fragment_shader::Sprite, 0>(
-        init::fragment_shader::Sprite {
-            pos: [0f32, 0f32],
-            offset: [0f32, 0f32],
-        },
-    )];
-
     let mut window_size = window_size_start;
     let (
         mut swapchain,
@@ -222,7 +215,7 @@ pub fn make_window(
         }
         Event::RedrawEventsCleared => {
             // render stuff
-			window_size = window.inner_size();
+            window_size = window.inner_size();
             if window_size.width == 0 || window_size.height == 0 {
                 return;
             }

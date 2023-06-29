@@ -15,7 +15,9 @@ struct Material {
 
 struct Sprite {
 	vec2 pos; // 8
-	vec2 offset; // 16
+	vec2 size; // 16
+	vec2 offset; // 24
+	vec2 scale; // 32
 };
 
 layout(binding = 0) buffer Data {
@@ -50,6 +52,18 @@ void main() {
 			break;
 		}
 	}
-	vec4 col = texture(atlas,uv * 2.0 - 1.0);
-	f_color = vec4(c, 1.) + col;
+	for (int i = 0; i < sprite_buf.sprites.length(); i++)
+	{
+		vec2 local = uv - sprite_buf.sprites[i].pos;
+		if ((local.x < sprite_buf.sprites[i].size.x) && (local.y < sprite_buf.sprites[i].size.y) && (local.x > 0.0) && (local.y > 0.0)) 
+		{
+			local = vec2(local.x * sprite_buf.sprites[i].scale.x, local.y * sprite_buf.sprites[i].scale.y);
+			vec4 val = texture(atlas,local);
+			c = val.a * val.rgb + c * (1.0 - val.a);
+			// c = val.rgb;
+		}
+	}
+
+	// vec4 col = texture(atlas,uv * 2.0 - 1.0);
+	f_color = vec4(c, 1.);
 }
