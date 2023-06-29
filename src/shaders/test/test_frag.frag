@@ -50,6 +50,6 @@ void main() {
 			break;
 		}
 	}
-	vec4 col = texture(atlas,uv);
+	vec4 col = texture(atlas,uv * 2.0 - 1.0);
 	f_color = vec4(c, 1.) + col;
 }
