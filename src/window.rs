@@ -168,7 +168,11 @@ pub fn make_window(
     let set = PersistentDescriptorSet::new(
         &descriptor_set_allocator,
         layout.clone(),
-        [WriteDescriptorSet::image_view_sampler(2, texture.clone(), sampler.clone())],
+        [WriteDescriptorSet::image_view_sampler(
+            2,
+            texture.clone(),
+            sampler.clone(),
+        )],
     )
     .unwrap();
 
@@ -218,6 +222,9 @@ pub fn make_window(
         }
         Event::RedrawEventsCleared => {
             // render stuff
+            if window_size.width == 0 || window_size.height == 0 {
+                return;
+            }
 
             if recreate_swapchain {
                 // println!("recreating swapchain (slow)");
@@ -351,17 +358,17 @@ pub fn make_window(
 
             fences[image_index as usize] = match future {
                 Ok(value) => {
-					previous_frame_end = Some(sync::now(device.clone()).boxed());
-					Some(Arc::new(value))
-				},
+                    previous_frame_end = Some(sync::now(device.clone()).boxed());
+                    Some(Arc::new(value))
+                }
                 Err(FlushError::OutOfDate) => {
                     recreate_swapchain = true;
-					previous_frame_end = Some(sync::now(device.clone()).boxed());
+                    previous_frame_end = Some(sync::now(device.clone()).boxed());
                     None
                 }
                 Err(e) => {
                     println!("failed to flush future: {e}");
-					previous_frame_end = Some(sync::now(device.clone()).boxed());
+                    previous_frame_end = Some(sync::now(device.clone()).boxed());
                     None
                 }
             };
