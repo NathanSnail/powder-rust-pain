@@ -222,6 +222,7 @@ pub fn make_window(
         }
         Event::RedrawEventsCleared => {
             // render stuff
+			window_size = window.inner_size();
             if window_size.width == 0 || window_size.height == 0 {
                 return;
             }
