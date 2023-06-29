@@ -39,7 +39,6 @@ layout(location = 0) out vec4 f_color;
 
 void main() {
 	Sprite _1 = sprite_buf.sprites[0];
-	vec4 _2 = texture(atlas,vec2(0.0));
 	float radius = 0.02/2.0*1.2; // coeff to hide bg
 	vec2 uv = gl_FragCoord.xy / PushConstants.dims;
 	vec3 c = vec3(0.4,0.45,1.0);
@@ -48,7 +47,9 @@ void main() {
 		if (length(buf.mat[i].pos-uv) < radius)
 		{
 			c = buf.mat[i].colour;
+			break;
 		}
 	}
-	f_color = vec4(c, 1.);
+	vec4 col = texture(atlas,uv);
+	f_color = vec4(c, 1.) + col;
 }

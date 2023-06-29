@@ -72,6 +72,7 @@ pub fn initialize_swapchain_screen<T, U>(
     Arc<Queue>,
     Arc<ImageView<ImmutableImage>>,
     Arc<Sampler>,
+    AutoCommandBufferBuilder<PrimaryAutoCommandBuffer>,
 ) {
     let (swapchain, images) =
         utils::get_swapchain(&render_physical_device, &render_device, &window, surface);
@@ -152,7 +153,7 @@ pub fn initialize_swapchain_screen<T, U>(
         world_buffer,
         sprite_buffer,
         &texture,
-		sampler.clone()
+        sampler.clone(),
     );
 
     (
@@ -171,6 +172,7 @@ pub fn initialize_swapchain_screen<T, U>(
         render_queue,
         texture,
         sampler,
+        uploads,
     )
 }
 

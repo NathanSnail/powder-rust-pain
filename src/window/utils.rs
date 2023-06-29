@@ -101,7 +101,7 @@ pub fn get_command_buffers<T, U>(
     world_buffer: &Subbuffer<[T]>,
     entity_buffer: &Subbuffer<[U]>,
     texture_atlas: &Arc<ImageView<ImmutableImage>>,
-	sampler: Arc<Sampler>,
+    sampler: Arc<Sampler>,
 ) -> Vec<Arc<PrimaryAutoCommandBuffer>> {
     let command_buffer_allocator =
         StandardCommandBufferAllocator::new(device.clone(), Default::default());
@@ -119,7 +119,7 @@ pub fn get_command_buffers<T, U>(
                 entity_buffer,
                 device,
                 texture_atlas,
-				sampler.clone(),
+                sampler.clone(),
             )
         })
         .collect()
@@ -136,7 +136,7 @@ fn build_render_pass<T, U>(
     entity_buffer: &Subbuffer<[U]>,
     device: &Arc<Device>,
     texture_atlas: &Arc<ImageView<ImmutableImage>>,
-	sampler: Arc<Sampler>,
+    sampler: Arc<Sampler>,
 ) -> Arc<PrimaryAutoCommandBuffer> {
     let mut builder = AutoCommandBufferBuilder::primary(
         command_buffer_allocator,
@@ -242,7 +242,7 @@ pub fn recreate_swapchain<T, U>(
     world_buffer: &Subbuffer<[T]>,
     entity_buffer: &Subbuffer<[U]>,
     texture_atlas: &Arc<ImageView<ImmutableImage>>,
-	sampler: Arc<Sampler>,
+    sampler: Arc<Sampler>,
     push_constants: init::fragment_shader::PushType,
 ) {
     let new_dimensions = window.inner_size();
@@ -277,6 +277,30 @@ pub fn recreate_swapchain<T, U>(
         world_buffer,
         entity_buffer,
         texture_atlas,
-		sampler,
+        sampler,
     );
+}
+
+pub fn window_size_dependent_setup(
+    images: &[Arc<SwapchainImage>],
+    render_pass: Arc<RenderPass>,
+    viewport: &mut Viewport,
+) -> Vec<Arc<Framebuffer>> {
+    let dimensions = images[0].dimensions().width_height();
+    viewport.dimensions = [dimensions[0] as f32, dimensions[1] as f32];
+
+    images
+        .iter()
+        .map(|image| {
+            let view = ImageView::new_default(image.clone()).unwrap();
+            Framebuffer::new(
+                render_pass.clone(),
+                FramebufferCreateInfo {
+                    attachments: vec![view],
+                    ..Default::default()
+                },
+            )
+            .unwrap()
+        })
+        .collect::<Vec<_>>()
 }
