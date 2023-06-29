@@ -1,0 +1,1 @@
+return equality(10,10)

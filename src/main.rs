@@ -6,11 +6,14 @@ use vulkano::memory::allocator::{GenericMemoryAllocator, StandardMemoryAllocator
 use vulkano::padded::Padded;
 use vulkano::sync::{self};
 
+use rlua::Lua;
+
 mod deploy_shader;
 mod gpu_constructor;
 mod pass_structs;
 mod simulation;
 mod window;
+mod lua_funcs;
 
 use simulation::sand::{sand_shader::Material, PADDING};
 use window::init::fragment_shader::Sprite;
@@ -82,6 +85,21 @@ fn main() {
     }];
     // let data2 = 0..64; //staging, gpu 1, gpu 2, download (eventually)
 
+	let lua_obj = Lua::new();
+
+	// lua.context(|lua_ctx| {
+    //     let globals = lua_ctx.globals();
+
+    //     globals.set("string_var", "hello").unwrap();
+    // });
+	
+	// lua.context(|lua_ctx| {
+    //     let globals = lua_ctx.globals();
+	// 	let val: String = globals.get("string_var").unwrap();
+	// 	println!("{val:?}");
+	// });
+
+
     window::make_window(
         library,
         memory_allocator,
@@ -95,6 +113,12 @@ fn main() {
         event_loop,
         window_size,
         entities,
+		lua_obj,
     );
     //main.rs is done now as window now has control
+}
+
+pub fn test()
+{
+	println!("luad");
 }

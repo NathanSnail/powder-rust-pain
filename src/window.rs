@@ -1,11 +1,13 @@
+use std::fs;
 use std::sync::Arc;
 
-use crate::deploy_shader;
+use crate::{deploy_shader, lua_funcs};
 
 use crate::simulation::ecs::{self, Entity};
 use crate::simulation::sand::sand_shader::Hitbox;
 use crate::simulation::sand::upload_standard_buffer;
 use crate::simulation::sand::{self, sand_shader::Material, PADDING};
+use rlua::Lua;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::{
     AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage, CopyBufferInfo,
@@ -52,6 +54,7 @@ pub fn make_window(
     event_loop: EventLoop<()>,
     window_size_start: PhysicalSize<u32>,
     init_entities: Vec<Entity>,
+    lua_obj: Lua,
 ) {
     // let WindowInitialized {
     //     physical_device,
@@ -118,14 +121,14 @@ pub fn make_window(
     let mut sprites_collection = entities
         .clone()
         .into_iter()
-        .map(|e| Padded::<Sprite,0>(e.sprite))
+        .map(|e| Padded::<Sprite, 0>(e.sprite))
         .collect();
     let mut sprite_buffer = upload_standard_buffer(sprites_collection, &memory_allocator);
 
     let mut hitbox_collection = entities
         .clone()
         .into_iter()
-        .map(|e| Padded::<Hitbox,0>(e.hitbox))
+        .map(|e| Padded::<Hitbox, 0>(e.hitbox))
         .collect();
     let mut hitbox_buffer = upload_standard_buffer(hitbox_collection, &memory_allocator);
 
@@ -161,29 +164,13 @@ pub fn make_window(
         &device,
     );
 
-    //atlas (eldritch / unknowable)
-
-    let layout = render_pipeline.layout().set_layouts().get(0).unwrap();
-    let descriptor_set_allocator = StandardDescriptorSetAllocator::new(device.clone());
-
-    let set = PersistentDescriptorSet::new(
-        &descriptor_set_allocator,
-        layout.clone(),
-        [WriteDescriptorSet::image_view_sampler(
-            2,
-            texture.clone(),
-            sampler.clone(),
-        )],
-    )
-    .unwrap();
+    // atlas (eldritch / unknowable)
 
     let mut viewport = Viewport {
         origin: [0.0, 0.0],
         dimensions: [0.0, 0.0],
         depth_range: 0.0..1.0,
     };
-    let mut framebuffers =
-        utils::window_size_dependent_setup(&images, render_pass.clone(), &mut viewport);
 
     let mut recreate_swapchain = false;
     let mut previous_frame_end = Some(
@@ -196,6 +183,16 @@ pub fn make_window(
     );
 
     let mut next_future: Option<FenceSignalFuture<CommandBufferExecFuture<NowFuture>>> = None;
+
+    // lua
+
+    lua_obj.context(|ctx| {
+        lua_funcs::create(ctx);
+
+        let content = fs::read_to_string("./init.lua").unwrap();
+        let lua_value = ctx.load(&content[..]).eval::<bool>().unwrap();
+		println!("{lua_value:?}");
+    });
 
     event_loop.run(move |event, _, control_flow| match event {
         Event::WindowEvent {
