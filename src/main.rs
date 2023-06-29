@@ -64,7 +64,7 @@ fn main() {
         std::sync::Arc<vulkano::memory::allocator::FreeListAllocator>,
     > = StandardMemoryAllocator::new_default(device.clone());
 
-    let mut entities = vec![Entity {
+    let entities = vec![Entity {
         pos: [0f32, 0f32],
         sprite: Sprite {
             pos: [0f32, 0f32],

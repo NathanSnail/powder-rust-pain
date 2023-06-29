@@ -8,12 +8,15 @@ use crate::simulation::sand::{self, sand_shader::Material, PADDING};
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::{
     AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage, CopyBufferInfo,
-    PrimaryCommandBufferAbstract,
+    PrimaryCommandBufferAbstract, RenderPassBeginInfo, SubpassContents,
 };
+use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
+use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::device::physical::PhysicalDevice;
 use vulkano::device::{Device, Queue};
 use vulkano::memory::allocator::GenericMemoryAllocator;
 use vulkano::padded::Padded;
+use vulkano::pipeline::{Pipeline, PipelineBindPoint};
 use vulkano::swapchain::{acquire_next_image, SwapchainPresentInfo};
 use vulkano::swapchain::{AcquireError, Surface};
 use vulkano::sync::future::{FenceSignalFuture, NowFuture};
@@ -24,6 +27,8 @@ use winit::event::{Event, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::Window;
 
+use self::init::get_image;
+
 mod fps;
 pub mod init;
 mod utils;
@@ -32,7 +37,7 @@ const FPS_DISPLAY: bool = true;
 
 pub fn make_window(
     _library: Arc<VulkanLibrary>,
-    compute_memory_allocator: GenericMemoryAllocator<
+    memory_allocator: GenericMemoryAllocator<
         std::sync::Arc<vulkano::memory::allocator::FreeListAllocator>,
     >,
     device: Arc<Device>,
@@ -66,10 +71,9 @@ pub fn make_window(
     let mut cur_frame = 0;
     let mut time = 0f64;
     //compute
-    let world_buffer_accessible =
-        sand::upload_transfer_source_buffer(world, &compute_memory_allocator);
+    let world_buffer_accessible = sand::upload_transfer_source_buffer(world, &memory_allocator);
     let world_buffer_inaccessible =
-        sand::upload_device_buffer(&compute_memory_allocator, (work_groups[0] * 64) as u64);
+        sand::upload_device_buffer(&memory_allocator, (work_groups[0] * 64) as u64);
 
     // Create one-time command to copy between the buffers.
     let command_buffer_allocator =
@@ -114,8 +118,14 @@ pub fn make_window(
         .into_iter()
         .map(|e| Padded(e.sprite))
         .collect();
-    let sprite_buffer =
-        upload_standard_sprite_buffer(sprites_collection, &compute_memory_allocator);
+    let sprite_buffer = upload_standard_sprite_buffer(sprites_collection, &memory_allocator);
+
+    let data_temp = vec![Padded::<init::fragment_shader::Sprite, 0>(
+        init::fragment_shader::Sprite {
+            pos: [0f32, 0f32],
+            offset: [0f32, 0f32],
+        },
+    )];
 
     let mut window_size = window_size_start;
     let (
@@ -129,6 +139,11 @@ pub fn make_window(
         vertex_buffer,
         mut fences,
         mut previous_fence_i,
+        images,
+        render_pipeline,
+        render_queue,
+		texture,
+		sampler,
     ) = init::initialize_swapchain_screen(
         physical_device,
         device.clone(),
@@ -138,7 +153,14 @@ pub fn make_window(
         compute_queue.clone(),
         &world_buffer_inaccessible,
         &sprite_buffer,
+		&command_buffer_allocator,
+		&memory_allocator,
+		&device
     );
+
+    //atlas
+
+    
 
     let mut next_future: Option<FenceSignalFuture<CommandBufferExecFuture<NowFuture>>> = None;
 
@@ -167,6 +189,8 @@ pub fn make_window(
             recreate_swapchain = true;
         }
         Event::RedrawEventsCleared => {
+            // render stuff
+
             if recreate_swapchain {
                 // println!("recreating swapchain (slow)");
                 recreate_swapchain = false;
@@ -183,14 +207,16 @@ pub fn make_window(
                     &vs,
                     &fs,
                     &world_buffer_inaccessible,
-					&sprite_buffer,
+                    &sprite_buffer,
+                    &texture,
+					sampler.clone(),
                     init::fragment_shader::PushType {
                         dims: [window_size.width as f32, window_size.height as f32],
                     },
                 );
             }
 
-            let (image_i, suboptimal, acquire_future) =
+            let (image_index, suboptimal, acquire_future) =
                 match acquire_next_image(swapchain.clone(), None) {
                     Ok(r) => r,
                     Err(AcquireError::OutOfDate) => {
@@ -203,8 +229,10 @@ pub fn make_window(
                 recreate_swapchain = true;
             }
 
+            // compute stuff
+
             // wait for the fence related to this image to finish (normally this would be the oldest fence)
-            if let Some(image_fence) = &fences[image_i as usize] {
+            if let Some(image_fence) = &fences[image_index as usize] {
                 image_fence.wait(None).unwrap();
             }
 
@@ -224,16 +252,16 @@ pub fn make_window(
                 .join(acquire_future)
                 .then_execute(
                     compute_queue.clone(),
-                    command_buffers[image_i as usize].clone(),
+                    command_buffers[image_index as usize].clone(),
                 )
                 .unwrap()
                 .then_swapchain_present(
                     compute_queue.clone(),
-                    SwapchainPresentInfo::swapchain_image_index(swapchain.clone(), image_i),
+                    SwapchainPresentInfo::swapchain_image_index(swapchain.clone(), image_index),
                 )
                 .then_signal_fence_and_flush();
 
-            fences[image_i as usize] = match future {
+            fences[image_index as usize] = match future {
                 Ok(value) => Some(Arc::new(value)),
                 Err(FlushError::OutOfDate) => {
                     recreate_swapchain = true;
@@ -244,7 +272,7 @@ pub fn make_window(
                     None
                 }
             };
-            previous_fence_i = image_i;
+            previous_fence_i = image_index;
             if FPS_DISPLAY {
                 fps::do_fps(&mut frames, &mut cur_frame, &mut time);
             }
@@ -270,9 +298,11 @@ pub fn make_window(
                     //     }
                     // }
                 }
-                for entity in &mut entities {
-                    ecs::tick(entity);
-                }
+            }
+            // ecs stuff
+
+            for entity in &mut entities {
+                ecs::tick(entity);
             }
         }
         _ => (),

@@ -10,14 +10,15 @@ use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
 use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::device::physical::PhysicalDevice;
 use vulkano::device::{Device, Queue};
-use vulkano::image::ImageUsage;
 use vulkano::image::{view::ImageView, SwapchainImage};
+use vulkano::image::{ImageAccess, ImageUsage, ImmutableImage};
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
 
 use vulkano::pipeline::graphics::vertex_input::Vertex;
 use vulkano::pipeline::graphics::viewport::{Viewport, ViewportState};
 use vulkano::pipeline::{GraphicsPipeline, Pipeline, PipelineBindPoint};
 use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass};
+use vulkano::sampler::Sampler;
 use vulkano::shader::ShaderModule;
 use vulkano::swapchain::{
     PresentMode, Surface, Swapchain, SwapchainCreateInfo, SwapchainCreationError,
@@ -90,7 +91,7 @@ pub fn get_pipeline(
         .unwrap()
 }
 
-pub fn get_command_buffers<T,U>(
+pub fn get_command_buffers<T, U>(
     device: &Arc<Device>,
     queue: &Arc<Queue>,
     pipeline: &Arc<GraphicsPipeline>,
@@ -98,7 +99,9 @@ pub fn get_command_buffers<T,U>(
     vertex_buffer: &Subbuffer<[CPUVertex]>,
     push_constants: init::fragment_shader::PushType,
     world_buffer: &Subbuffer<[T]>,
-	entity_buffer: &Subbuffer<[U]>,
+    entity_buffer: &Subbuffer<[U]>,
+    texture_atlas: &Arc<ImageView<ImmutableImage>>,
+	sampler: Arc<Sampler>,
 ) -> Vec<Arc<PrimaryAutoCommandBuffer>> {
     let command_buffer_allocator =
         StandardCommandBufferAllocator::new(device.clone(), Default::default());
@@ -113,14 +116,16 @@ pub fn get_command_buffers<T,U>(
                 &command_buffer_allocator,
                 push_constants,
                 world_buffer,
-				entity_buffer,
+                entity_buffer,
                 device,
+                texture_atlas,
+				sampler.clone(),
             )
         })
         .collect()
 }
 
-fn build_render_pass<T,U>(
+fn build_render_pass<T, U>(
     frame_buffer: &Arc<Framebuffer>,
     queue: &Arc<Queue>,
     pipeline: &Arc<GraphicsPipeline>,
@@ -128,8 +133,10 @@ fn build_render_pass<T,U>(
     command_buffer_allocator: &StandardCommandBufferAllocator,
     push_constants: init::fragment_shader::PushType,
     world_buffer: &Subbuffer<[T]>,
-	entity_buffer: &Subbuffer<[U]>,
+    entity_buffer: &Subbuffer<[U]>,
     device: &Arc<Device>,
+    texture_atlas: &Arc<ImageView<ImmutableImage>>,
+	sampler: Arc<Sampler>,
 ) -> Arc<PrimaryAutoCommandBuffer> {
     let mut builder = AutoCommandBufferBuilder::primary(
         command_buffer_allocator,
@@ -147,12 +154,16 @@ fn build_render_pass<T,U>(
     let descriptor_set = match PersistentDescriptorSet::new(
         &descriptor_set_allocator,
         descriptor_set_layout.clone(),
-        [WriteDescriptorSet::buffer(0, world_buffer.clone()), WriteDescriptorSet::buffer(1, entity_buffer.clone())], // 0 is the binding
+        [
+            WriteDescriptorSet::buffer(0, world_buffer.clone()),
+            WriteDescriptorSet::buffer(1, entity_buffer.clone()),
+            WriteDescriptorSet::image_view_sampler(2, texture_atlas.clone(), sampler),
+        ], // 0-2 is the binding
     ) {
         Ok(res) => res,
         Err(e) => panic!("Error with {e:?}"),
     };
-	
+
     builder
         .begin_render_pass(
             RenderPassBeginInfo {
@@ -217,7 +228,7 @@ pub fn get_swapchain(
     (swapchain, images)
 }
 
-pub fn recreate_swapchain<T,U>(
+pub fn recreate_swapchain<T, U>(
     window: &Window,
     render_pass: &Arc<RenderPass>,
     swapchain: &mut Arc<Swapchain>,
@@ -229,7 +240,9 @@ pub fn recreate_swapchain<T,U>(
     vs: &Arc<ShaderModule>,
     fs: &Arc<ShaderModule>,
     world_buffer: &Subbuffer<[T]>,
-	entity_buffer: &Subbuffer<[U]>,
+    entity_buffer: &Subbuffer<[U]>,
+    texture_atlas: &Arc<ImageView<ImmutableImage>>,
+	sampler: Arc<Sampler>,
     push_constants: init::fragment_shader::PushType,
 ) {
     let new_dimensions = window.inner_size();
@@ -262,6 +275,8 @@ pub fn recreate_swapchain<T,U>(
         vertex_buffer,
         push_constants,
         world_buffer,
-		entity_buffer,
+        entity_buffer,
+        texture_atlas,
+		sampler,
     );
 }
