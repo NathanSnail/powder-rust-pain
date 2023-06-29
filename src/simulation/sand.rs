@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use vulkano::buffer::Subbuffer;
+use vulkano::buffer::{Subbuffer, BufferContents};
 use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage};
 use vulkano::command_buffer::{CommandBufferExecFuture, PrimaryAutoCommandBuffer};
 use vulkano::device::{Device, Queue};
@@ -65,10 +65,13 @@ pub fn upload_device_buffer(
     .expect("failed to create buffer")
 }
 ///! Slow and generally shouldn't be used, use a device and transfer buffer with download.
-pub fn upload_standard_sprite_buffer(
-    data: Vec<Padded<fragment_shader::Sprite,0>>,
+pub fn upload_standard_buffer<T>(
+    data: Vec<T>,
     memory_allocator: &(impl MemoryAllocator + ?Sized),
-) -> Subbuffer<[Padded<fragment_shader::Sprite, 0>]> {
+) -> Subbuffer<[T]>
+where
+    T: Send + Sync + BufferContents,
+{
     Buffer::from_iter(
         memory_allocator,
         BufferCreateInfo {

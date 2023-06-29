@@ -3,7 +3,8 @@ use std::sync::Arc;
 use crate::deploy_shader;
 
 use crate::simulation::ecs::{self, Entity};
-use crate::simulation::sand::upload_standard_sprite_buffer;
+use crate::simulation::sand::sand_shader::Hitbox;
+use crate::simulation::sand::upload_standard_buffer;
 use crate::simulation::sand::{self, sand_shader::Material, PADDING};
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::{
@@ -28,7 +29,7 @@ use winit::event::{Event, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::Window;
 
-use self::init::get_image;
+use self::init::fragment_shader::Sprite;
 
 mod fps;
 pub mod init;
@@ -117,9 +118,16 @@ pub fn make_window(
     let mut sprites_collection = entities
         .clone()
         .into_iter()
-        .map(|e| Padded(e.sprite))
+        .map(|e| Padded::<Sprite,0>(e.sprite))
         .collect();
-    let sprite_buffer = upload_standard_sprite_buffer(sprites_collection, &memory_allocator);
+    let mut sprite_buffer = upload_standard_buffer(sprites_collection, &memory_allocator);
+
+    let mut hitbox_collection = entities
+        .clone()
+        .into_iter()
+        .map(|e| Padded::<Hitbox,0>(e.hitbox))
+        .collect();
+    let mut hitbox_buffer = upload_standard_buffer(hitbox_collection, &memory_allocator);
 
     let mut window_size = window_size_start;
     let (
@@ -310,9 +318,7 @@ pub fn make_window(
             }
             // ecs stuff
 
-            for entity in &mut entities {
-                ecs::tick(entity);
-            }
+            ecs::regenerate(&mut entities, &mut sprite_buffer, &mut hitbox_buffer);
 
             // atlas
             // let mut builder = AutoCommandBufferBuilder::primary(

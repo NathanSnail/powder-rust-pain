@@ -1,5 +1,7 @@
 #version 450
 
+// these numbers are memory byte allignment information, not really relevant unless you change the structs at all.
+
 struct Material {
 	vec3 colour; // 12
 	uint id; // 16
@@ -11,14 +13,26 @@ struct Material {
 	float stable; // 52
 	uint tags; // 56
 	uint gas; // 60
-};
+}; // +4
+
+struct Hitbox {
+	vec2 pos; // 8 (hitbox owns the real entity position so that buffers are better)
+	vec2 size; // 16
+	float mass; // 20
+	bool simulate; // 24 (booleans are not glbooleans and so are 32 bit alligned meaning 4 byte memory blocks)
+}; // +0
 
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
-layout(binding = 0) buffer Data { // eventually need double buffer for non random results
+layout(binding = 0) buffer DataMaterial { // eventually need double buffer for non random results
 	Material mat[];
 }
 buf;
+
+layout(binding = 1) buffer DataEntity { // eventually need double buffer for non random results
+	Hitbox ent[];
+}
+entity;
 
 float random (vec2 st) {
     return fract(sin(dot(st.xy,vec2(12.9898,78.233)))*43758.5453123)*2.0-1.0; // https://thebookofshaders.com/10/

@@ -1,4 +1,5 @@
-use simulation::ecs::{Entity, Script};
+use simulation::ecs::{Entity};
+use simulation::sand::sand_shader::Hitbox;
 use vulkano::buffer::BufferContents;
 
 use vulkano::memory::allocator::{GenericMemoryAllocator, StandardMemoryAllocator};
@@ -65,14 +66,19 @@ fn main() {
     > = StandardMemoryAllocator::new_default(device.clone());
 
     let entities = vec![Entity {
-        pos: [0f32, 0f32],
+        hitbox: Hitbox {
+            pos: [0f32, 0f32],
+            size: [0f32, 0f32],
+			mass: 0f32,
+			simulate: 0, // 0 && 1 for true and false because of shader weirdness. 
+        },
         sprite: Sprite {
             pos: [0.3f32, 0.1f32],
             size: [0.2f32, 0.5f32],
             offset: [0.3f32, 0.3f32],
             scale: [3.0f32, 3.0f32],
         },
-        scripts: vec![Script {}],
+		data: "".to_owned(),
     }];
     // let data2 = 0..64; //staging, gpu 1, gpu 2, download (eventually)
 

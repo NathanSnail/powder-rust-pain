@@ -11,14 +11,14 @@ struct Material {
 	float stable; // 52
 	uint tags; // 56
 	uint gas; // 60
-};
+}; // +4
 
 struct Sprite {
 	vec2 pos; // 8
 	vec2 size; // 16
 	vec2 offset; // 24
 	vec2 scale; // 32
-};
+}; // +0
 
 layout(binding = 0) buffer Data {
 	Material mat[];
@@ -49,17 +49,17 @@ void main() {
 		if (length(buf.mat[i].pos-uv) < radius)
 		{
 			c = buf.mat[i].colour;
-			break;
+			break; // + ~10% fps
 		}
 	}
 	for (int i = 0; i < sprite_buf.sprites.length(); i++)
 	{
 		vec2 local = uv - sprite_buf.sprites[i].pos;
-		if ((local.x < sprite_buf.sprites[i].size.x) && (local.y < sprite_buf.sprites[i].size.y) && (local.x > 0.0) && (local.y > 0.0)) 
+		if ((local.x < sprite_buf.sprites[i].size.x) && (local.y < sprite_buf.sprites[i].size.y) && (local.x > 0.0) && (local.y > 0.0))  // bounding check
 		{
-			local = vec2(local.x * sprite_buf.sprites[i].scale.x, local.y * sprite_buf.sprites[i].scale.y);
+			local = vec2(local.x * sprite_buf.sprites[i].scale.x, local.y * sprite_buf.sprites[i].scale.y); // cross product
 			vec4 val = texture(atlas,local);
-			c = val.a * val.rgb + c * (1.0 - val.a);
+			c = val.a * val.rgb + c * (1.0 - val.a); // standard alpha recombination
 			// c = val.rgb;
 		}
 	}
