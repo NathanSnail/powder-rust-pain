@@ -57,8 +57,6 @@ fn regen_from_cpu(
         buffer_writer_hitbox[c] = Padded::from(entity.hitbox);
         // c += 1;
     }
-    let d = buffer_writer_hitbox[0].simulate;
-    println!("{d:?}");
 }
 
 pub fn regenerate(
@@ -77,11 +75,6 @@ pub fn regenerate(
     ctx.globals()
         .set("RS_created", ctx.create_table().unwrap())
         .unwrap(); // don't leak memory
-    let info: Table = ctx.globals().get("RS_created").unwrap();
-    for elem in info.pairs() {
-        let (_, data): (u32,i32) = elem.unwrap();
-        println!("{data:?}");
-    }
     ctx.load("RS_tick_handle()").exec().unwrap();
     // println!("tick worked");
     // we have to apply the changes here because the rust lua crate I chose kind of sucks.

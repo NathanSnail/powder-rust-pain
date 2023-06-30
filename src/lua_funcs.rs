@@ -284,30 +284,24 @@ fn get_entity_value<'a>(
 
 fn create_entity<'a>(lua_ctx: Context<'a>, entities: &[Entity]) {
     let mut idx = 2u32.pow(30); // if you hit this you have bigger problems
-    for (key, entity) in entities.iter().enumerate() {
-        if entity.deleted == true {
+	for (key, entity) in entities.iter().enumerate() {
+        if entity.deleted {
             let mut cmd = r"
 			RS_created = RS_created or {}
 			for k,v in ipairs(RS_created) do
-				print(k)
-				print(v)
 				if k == "
                 .to_owned();
             cmd.push_str(&key.to_string()[..]);
             cmd.push_str(
                 r"
 				then
-				return -1",
-            );
-            cmd.push_str(
-                r"
-			end
+					return -1 -- on dupe fail
+				end
 			end
 			return 1",
             );
-			println!("{cmd}");
             if lua_ctx.load(&cmd[..]).eval::<u32>().unwrap() == 1 {
-                idx = key as u32;
+                idx = key as u32; // if we find an answer, we are done
                 break;
             }
         }
