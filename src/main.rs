@@ -109,8 +109,9 @@ fn main() {
     let entities = vec![Entity {
         hitbox: Hitbox {
             pos: [0f32, 0f32],
-            size: [0f32, 0f32],
-            mass: 0f32,
+            size: [0.5f32, 0.5f32],
+			vel: [0f32, 0f32],
+            mass: 1f32,
             simulate: 0, // 0 && 1 for true and false because of shader weirdness.
         },
         sprite: Sprite {

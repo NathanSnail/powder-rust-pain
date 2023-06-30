@@ -18,6 +18,7 @@ struct Material {
 struct Hitbox {
 	vec2 pos; // 8 (hitbox owns the real entity position so that buffers are better)
 	vec2 size; // 16
+	vec2 vel;
 	float mass; // 20
 	bool simulate; // 24 (booleans are not glbooleans and so are 32 bit alligned meaning 4 byte memory blocks)
 }; // +0
@@ -52,6 +53,19 @@ void main() {
 			// buf.mat[idx].pos += dir/4.0;
 		}
 	}
+
+	for(int i = 0; i < entity.ent.length(); i++)
+	{
+		vec2 local = buf.mat[idx].pos - entity.ent[i].pos;
+		if ((local.x < entity.ent[i].size.x) && (local.y < entity.ent[i].size.y) && (local.x > 0.0) && (local.y > 0.0))  // bounding check
+		{
+			local -= entity.ent[i].size / 2.0;
+			float mag = length(entity.ent[i].size / 2.0) - abs(length(local));
+			entity.ent[i].vel -= normalize(local) * mag / entity.ent[i].mass;
+			buf.mat[idx].vel += normalize(local) * mag / buf.mat[idx].mass;
+		}
+	}
+
 	buf.mat[idx].vel += vec2(random(buf.mat[idx].vel+buf.mat[idx].pos),random(buf.mat[idx].pos*2.0-buf.mat[idx].vel))/10000.0; // helps edges
 	buf.mat[idx].pos += buf.mat[idx].vel/100.0;
 	buf.mat[idx].pos.x = min(1.0,max(buf.mat[idx].pos.x,0.0));

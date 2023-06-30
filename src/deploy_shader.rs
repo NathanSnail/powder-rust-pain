@@ -1,16 +1,18 @@
+use crate::simulation::sand::sand_shader::Hitbox;
 use crate::sync::future::FenceSignalFuture;
 use crate::sync::future::NowFuture;
 use std::sync::Arc;
 use vulkano::buffer::Subbuffer;
-use vulkano::command_buffer::PrimaryAutoCommandBuffer;
 use vulkano::command_buffer::allocator::{
     StandardCommandBufferAllocator, StandardCommandBufferAllocatorCreateInfo,
 };
 use vulkano::command_buffer::CommandBufferExecFuture;
+use vulkano::command_buffer::PrimaryAutoCommandBuffer;
 use vulkano::command_buffer::{AutoCommandBufferBuilder, CommandBufferUsage};
 use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
 use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::device::{Device, Queue};
+use vulkano::padded::Padded;
 use vulkano::pipeline::{ComputePipeline, Pipeline, PipelineBindPoint};
 use vulkano::shader::ShaderModule;
 use vulkano::sync::{self, GpuFuture};
@@ -20,7 +22,6 @@ pub fn deploy(
     queue: Arc<Queue>,
     command: Arc<PrimaryAutoCommandBuffer>,
 ) -> FenceSignalFuture<CommandBufferExecFuture<NowFuture>> {
-
     sync::now(device)
         .then_execute(queue, command)
         .unwrap()
@@ -32,7 +33,8 @@ pub fn get_deploy_command<T>(
     shader: &Arc<ShaderModule>,
     device: &Arc<Device>,
     queue: &Arc<Queue>,
-    buffer: &Subbuffer<[T]>,
+    buffer_particle: &Subbuffer<[T]>,
+    buffer_hit: &Subbuffer<[Padded<Hitbox,0>]>,
     work_group_counts: [u32; 3],
 ) -> vulkano::command_buffer::PrimaryAutoCommandBuffer {
     let compute_pipeline = ComputePipeline::new(
@@ -55,7 +57,10 @@ pub fn get_deploy_command<T>(
     let descriptor_set = match PersistentDescriptorSet::new(
         &descriptor_set_allocator,
         descriptor_set_layout.clone(),
-        [WriteDescriptorSet::buffer(0, buffer.clone())], // 0 is the binding
+        [
+            WriteDescriptorSet::buffer(0, buffer_particle.clone()),
+            WriteDescriptorSet::buffer(1, buffer_hit.clone()),
+        ], // 0-1 is the binding
     ) {
         Ok(res) => res,
         Err(e) => panic!("Error with {e:?}"),

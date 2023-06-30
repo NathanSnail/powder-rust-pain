@@ -109,13 +109,7 @@ pub fn make_window(
     // Transfer complete
     let compute_shader_loaded =
         sand::sand_shader::load(device.clone()).expect("Failed to create compute shader.");
-    let deploy_command = Arc::new(deploy_shader::get_deploy_command(
-        &compute_shader_loaded,
-        &device,
-        &compute_queue,
-        &world_buffer_inaccessible,
-        work_groups,
-    ));
+    
 
     let mut entities = init_entities;
 
@@ -132,6 +126,15 @@ pub fn make_window(
         .map(|e| Padded::<Hitbox, 0>(e.hitbox))
         .collect();
     let mut hitbox_buffer = upload_standard_buffer(hitbox_collection, &memory_allocator);
+	
+	let deploy_command = Arc::new(deploy_shader::get_deploy_command(
+        &compute_shader_loaded,
+        &device,
+        &compute_queue,
+        &world_buffer_inaccessible,
+		&hitbox_buffer,
+        work_groups,
+    ));
 
     let mut window_size = window_size_start;
     let (
