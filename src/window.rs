@@ -39,7 +39,7 @@ mod fps;
 pub mod init;
 mod utils;
 
-const FPS_DISPLAY: bool = true;
+const FPS_DISPLAY: bool = false;
 
 pub fn make_window(
     _library: Arc<VulkanLibrary>,

@@ -1,4 +1,7 @@
-use rlua::{Context, Table, ToLuaMulti, Value::Nil};
+use rlua::{
+    Context, Table, ToLuaMulti,
+    Value::{self, Nil},
+};
 
 use crate::simulation::ecs::Entity;
 
@@ -30,12 +33,12 @@ pub fn create(lua_ctx: Context, entities: Vec<Entity>, frame: usize, time: u128)
     globals.set("GetEntityData", get_entities_lua).unwrap();
 
     let get_entities_lua = lua_ctx
-        .create_function(move |_, _: rlua::Value| Result::Ok(get_cur_frame(frame)))
+        .create_function(move |_, _: Value| Result::Ok(get_cur_frame(frame)))
         .unwrap();
     globals.set("GetFrame", get_entities_lua).unwrap();
 
     let get_entities_lua = lua_ctx
-        .create_function(move |_, _: rlua::Value| Result::Ok(get_cur_time(time)))
+        .create_function(move |_, _: Value| Result::Ok(get_cur_time(time)))
         .unwrap();
     globals.set("GetTime", get_entities_lua).unwrap();
 }
@@ -69,14 +72,33 @@ fn get_entity_vel<'a>(lua_ctx: &Context<'a>, entities: &[Entity], id: usize) -> 
     table
 }
 
-fn get_entity_data<'a>(entities: &[Entity], id: usize) -> String {
+fn get_entity_data(entities: &[Entity], id: usize) -> String {
     entities[id].data.clone()
 }
 
-fn get_cur_frame<'a>(frame: usize) -> usize {
+fn get_cur_frame(frame: usize) -> usize {
     frame
 }
 
-fn get_cur_time<'a>(time: u128) -> u128 {
+fn get_cur_time(time: u128) -> u128 {
     time
+}
+
+fn set_entity_value(lua_ctx: &Context, id: usize, path: String, values: Table) {
+    let mut cmd = "table.insert(deltas,{".to_owned();
+    let value1 = &values.get::<usize, String>(1).unwrap()[..];
+    let value2 = &(if values.len().unwrap() == 2 {
+        values.get::<usize, String>(1).unwrap()
+    } else {
+        "0".to_owned()
+    })[..];
+    cmd.push_str(&id.to_string()[..]);
+    cmd.push(',');
+    cmd.push_str(&path[..]);
+    cmd.push(',');
+    cmd.push_str(&value1[..]);
+    cmd.push(',');
+    cmd.push_str(&value2[..]);
+    cmd.push_str("})");
+    lua_ctx.load(&cmd[..]).exec().unwrap();
 }

@@ -1,5 +1,5 @@
 use rlua::Value::Nil;
-use rlua::{Context, Function};
+use rlua::{Context, Function, Table};
 use vulkano::padded::Padded;
 
 use crate::lua_funcs;
@@ -51,5 +51,61 @@ pub fn regenerate(
     regen_from_gpu(entities, hitbox_buffer); // gpu can only write to hitboxes
     lua_funcs::create(ctx, entities.clone(), frame, time); // rust safety requires this massive performance hit and general difficulty causer
     ctx.load("RS_tick_handle()").exec().unwrap();
-    regen_from_cpu(&entities, sprite_buffer, hitbox_buffer);
+    // we have to apply the changes here because the rust lua crate I chose kind of sucks.
+    let deltas = ctx.globals().get("deltas");
+    if deltas.is_ok() {
+        let deltas: Table = deltas.unwrap();
+        for elem in deltas.pairs::<usize, Table>() {
+            let (_, value) = elem.unwrap();
+            let eid: usize = value.get(1).unwrap();
+            let cid: String = value.get(2).unwrap();
+            match &cid[..] {
+                "sprite.pos" => {
+                    let data1 = value.get(3).unwrap();
+                    let data2 = value.get(4).unwrap();
+                    entities[eid].sprite.pos = [data1, data2];
+                }
+                "sprite.size" => {
+                    let data1 = value.get(3).unwrap();
+                    let data2 = value.get(4).unwrap();
+                    entities[eid].sprite.size = [data1, data2];
+                }
+                "sprite.offset" => {
+                    let data1 = value.get(3).unwrap();
+                    let data2 = value.get(4).unwrap();
+                    entities[eid].sprite.offset = [data1, data2];
+                }
+                "sprite.scale" => {
+                    let data1 = value.get(3).unwrap();
+                    let data2 = value.get(4).unwrap();
+                    entities[eid].sprite.scale = [data1, data2];
+                }
+                "hitbox.pos" => {
+                    let data1 = value.get(3).unwrap();
+                    let data2 = value.get(4).unwrap();
+                    entities[eid].hitbox.pos = [data1, data2];
+                }
+                "hitbox.size" => {
+                    let data1 = value.get(3).unwrap();
+                    let data2 = value.get(4).unwrap();
+                    entities[eid].hitbox.size = [data1, data2];
+                }
+                "hitbox.mass" => {
+                    let data1 = value.get(3).unwrap();
+                    entities[eid].hitbox.mass = data1;
+                }
+                "hitbox.simulate" => {
+                    let data1 = value.get(3).unwrap();
+                    entities[eid].hitbox.simulate = if data1 { 1 } else { 0 };
+                }
+                "data" => {
+                    entities[eid].data = value.get(3).unwrap();
+                }
+                "deleted" => entities[eid].deleted = value.get(3).unwrap(),
+                _ => {}
+            }
+        }
+    }
+
+    regen_from_cpu(entities, sprite_buffer, hitbox_buffer);
 }
