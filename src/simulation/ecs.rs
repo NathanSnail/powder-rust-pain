@@ -51,6 +51,7 @@ pub fn regenerate(
     regen_from_gpu(entities, hitbox_buffer); // gpu can only write to hitboxes
     lua_funcs::create(ctx, entities.clone(), frame, time); // rust safety requires this massive performance hit and general difficulty causer
     ctx.load("RS_tick_handle()").exec().unwrap();
+	// println!("tick worked");
     // we have to apply the changes here because the rust lua crate I chose kind of sucks.
     let deltas = ctx.globals().get("deltas");
     if deltas.is_ok() {

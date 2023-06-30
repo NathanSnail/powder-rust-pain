@@ -14,24 +14,6 @@ pub fn create(lua_ctx: Context, entities: Vec<Entity>, frame: usize, time: u128)
         .unwrap();
     globals.set("GetEntities", temp_fn).unwrap();
 
-    let e_2 = entities.clone();
-    let temp_fn = lua_ctx
-        .create_function(move |lua_ctx, id: usize| Result::Ok(get_entity_pos(&lua_ctx, &e_2, id)))
-        .unwrap();
-    globals.set("GetEntityPosition", temp_fn).unwrap();
-
-    let e_3 = entities.clone();
-    let temp_fn = lua_ctx
-        .create_function(move |lua_ctx, id: usize| Result::Ok(get_entity_vel(&lua_ctx, &e_3, id)))
-        .unwrap();
-    globals.set("GetEntityVelocity", temp_fn).unwrap();
-
-    let entities_clone = entities.clone();
-    let temp_fn = lua_ctx
-        .create_function(move |_, id: usize| Result::Ok(get_entity_data(&entities_clone, id)))
-        .unwrap();
-    globals.set("GetEntityData", temp_fn).unwrap();
-
     let temp_fn = lua_ctx
         .create_function(move |_, _: Value| Result::Ok(get_cur_frame(frame)))
         .unwrap();
@@ -71,26 +53,6 @@ fn get_entities<'a>(lua_ctx: &Context<'a>, entities: &[Entity]) -> Table<'a> {
     table
 }
 
-fn get_entity_pos<'a>(lua_ctx: &Context<'a>, entities: &[Entity], id: usize) -> Table<'a> {
-    let table = lua_ctx.create_table().unwrap();
-    let pos = entities[id].hitbox.pos;
-    table.set("x", pos[0]).unwrap();
-    table.set("y", pos[1]).unwrap();
-    table
-}
-
-fn get_entity_vel<'a>(lua_ctx: &Context<'a>, entities: &[Entity], id: usize) -> Table<'a> {
-    let table = lua_ctx.create_table().unwrap();
-    let vel = entities[id].hitbox.vel;
-    table.set("x", vel[0]).unwrap();
-    table.set("y", vel[1]).unwrap();
-    table
-}
-
-fn get_entity_data(entities: &[Entity], id: usize) -> String {
-    entities[id].data.clone()
-}
-
 fn get_cur_frame(frame: usize) -> usize {
     frame
 }
@@ -100,22 +62,25 @@ fn get_cur_time(time: u128) -> u128 {
 }
 
 fn set_entity_value(lua_ctx: Context, id: usize, path: String, values: Table) {
-    let mut cmd = "table.insert(deltas,{".to_owned();
+    let mut cmd = "deltas = deltas or {};table.insert(deltas,{".to_owned();
     let value1 = &values.get::<usize, String>(1).unwrap()[..];
     let value2 = &(if values.len().unwrap() == 2 {
-        values.get::<usize, String>(1).unwrap()
+        values.get::<usize, String>(2).unwrap()
     } else {
         "0".to_owned()
     })[..];
     cmd.push_str(&id.to_string()[..]);
-    cmd.push(',');
+    cmd.push_str(",\"");
     cmd.push_str(&path[..]);
+    cmd.push_str("\",");
+    cmd.push_str(value1);
     cmd.push(',');
-    cmd.push_str(&value1[..]);
-    cmd.push(',');
-    cmd.push_str(&value2[..]);
+    cmd.push_str(value2);
     cmd.push_str("})");
+	// println!("cmd");
+	// println!("{cmd:?}");
     lua_ctx.load(&cmd[..]).exec().unwrap();
+	// println!("cont");
 }
 
 enum EntityData<'a> {
