@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use vulkano::buffer::{Subbuffer, BufferContents};
 use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage};
+use vulkano::buffer::{BufferContents, Subbuffer};
 use vulkano::command_buffer::{CommandBufferExecFuture, PrimaryAutoCommandBuffer};
 use vulkano::device::{Device, Queue};
 use vulkano::padded::Padded;
@@ -11,11 +11,13 @@ use crate::deploy_shader;
 use crate::window::init::fragment_shader;
 use vulkano::memory::allocator::{AllocationCreateInfo, MemoryAllocator, MemoryUsage};
 
+use self::sand_shader::Hitbox;
+
 pub mod sand_shader {
     vulkano_shaders::shader! {
         ty: "compute",
         path: "src/shaders/sand_particle.glsl",
-        custom_derives: [Debug,Clone,Copy,],
+        custom_derives: [Debug,Clone,Copy],
     }
 }
 
@@ -34,6 +36,19 @@ impl Default for sand_shader::Material {
             stable: 0f32,
             tags: 0,
             gas: 0,
+        }
+    }
+}
+
+impl Default for Hitbox {
+    fn default() -> Self {
+        Hitbox {
+            pos: [0f32, 0f32],
+            size: [0f32, 0f32],
+            vel: [0f32, 0f32],
+            mass: 1f32,
+            simulate: 1,
+            deleted: 0,
         }
     }
 }

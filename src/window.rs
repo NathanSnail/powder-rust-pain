@@ -116,14 +116,14 @@ pub fn make_window(
     let mut sprites_collection = entities
         .clone()
         .into_iter()
-        .map(|e| Padded::<Sprite, 0>(e.sprite))
+        .map(|e| Padded::<Sprite, 4>(e.sprite))
         .collect();
     let mut sprite_buffer = upload_standard_buffer(sprites_collection, &memory_allocator);
 
     let mut hitbox_collection = entities
         .clone()
         .into_iter()
-        .map(|e| Padded::<Hitbox, 0>(e.hitbox))
+        .map(|e| Padded::<Hitbox, 4>(e.hitbox))
         .collect();
     let mut hitbox_buffer = upload_standard_buffer(hitbox_collection, &memory_allocator);
 

@@ -18,7 +18,8 @@ struct Sprite {
 	vec2 size; // 16
 	vec2 offset; // 24
 	vec2 scale; // 32
-}; // +0
+	bool deleted; // 36
+}; // +4
 
 layout(binding = 0) buffer Data {
 	Material mat[];
@@ -55,7 +56,7 @@ void main() {
 	for (int i = 0; i < sprite_buf.sprites.length(); i++)
 	{
 		vec2 local = uv - sprite_buf.sprites[i].pos;
-		if ((local.x < sprite_buf.sprites[i].size.x) && (local.y < sprite_buf.sprites[i].size.y) && (local.x > 0.0) && (local.y > 0.0))  // bounding check
+		if ((local.x < sprite_buf.sprites[i].size.x) && (local.y < sprite_buf.sprites[i].size.y) && (local.x > 0.0) && (local.y > 0.0) && !sprite_buf.sprites[i].deleted)  // bounding check
 		{
 			local = vec2(local.x * sprite_buf.sprites[i].scale.x, local.y * sprite_buf.sprites[i].scale.y); // cross product
 			vec4 val = texture(atlas,local);

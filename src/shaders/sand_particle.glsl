@@ -21,7 +21,8 @@ struct Hitbox {
 	vec2 vel;
 	float mass; // 20
 	bool simulate; // 24 (booleans are not glbooleans and so are 32 bit alligned meaning 4 byte memory blocks)
-}; // +0
+	bool deleted; // 28
+}; // +4
 
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
@@ -56,6 +57,10 @@ void main() {
 
 	for(int i = 0; i < entity.ent.length(); i++)
 	{
+		if (!entity.ent[i].simulate || entity.ent[i].deleted)
+		{
+			continue;
+		}
 		vec2 local = buf.mat[idx].pos - entity.ent[i].pos;
 		if ((local.x < entity.ent[i].size.x) && (local.y < entity.ent[i].size.y) && (local.x > 0.0) && (local.y > 0.0))  // bounding check
 		{

@@ -58,7 +58,7 @@ fn main() {
     let mut world: Vec<Padded<Material, PADDING>> = Vec::new();
 
     lua_obj.context(|ctx| {
-        let content = fs::read_to_string("./data/init.lua").unwrap(); // load init func
+        let content = fs::read_to_string("./data/init_world.lua").unwrap(); // load init func
         let data = ctx.load(&content[..]).eval::<Table>().unwrap();
 
         for elem in data.pairs::<usize, Table>() {
@@ -106,23 +106,47 @@ fn main() {
         std::sync::Arc<vulkano::memory::allocator::FreeListAllocator>,
     > = StandardMemoryAllocator::new_default(device.clone());
 
-    let entities = vec![Entity {
-        hitbox: Hitbox {
-            pos: [0f32, 0f32],
-            size: [0.5f32, 0.5f32],
-            vel: [0f32, 0f32],
-            mass: 1f32,
-            simulate: 0, // 0 && 1 for true and false because of shader weirdness.
-        },
-        sprite: Sprite {
-            pos: [0.3f32, 0.1f32],
-            size: [0.2f32, 0.5f32],
-            offset: [0.3f32, 0.3f32],
-            scale: [3.0f32, 3.0f32],
-        },
-        data: "".to_owned(),
-		deleted: false,
-    }];
+    let mut entities = Vec::new(); // we need some garbage here so buffer init works, request lua to do it.
+    lua_obj.context(|ctx| {
+        let content = fs::read_to_string("./data/init_entities.lua").unwrap(); // load init func
+        let data = ctx.load(&content[..]).eval::<Table>().unwrap();
+
+        for elem in data.pairs::<usize, Table>() {
+            let (_, value) = elem.unwrap();
+            let mut entity = Entity {
+                ..Default::default()
+            };
+            // let cv = value.get::<&str, u32>("id");
+            // if cv.is_ok() {
+            //     building_mat.id = cv.unwrap();
+            // }
+            let sprite: Result<Table, rlua::Error> = value.get("Sprite");
+            if sprite.is_ok() {
+                let sprite = sprite.unwrap();
+                handle_lua_vec!("pos", pos, 2, sprite, entity.sprite);
+                handle_lua_vec!("size", size, 2, sprite, entity.sprite);
+                handle_lua_vec!("offset", offset, 2, sprite, entity.sprite);
+                handle_lua_vec!("scale", scale, 2, sprite, entity.sprite);
+                // handle_lua_elem!(u32, "deleted", deleted, sprite, entity.sprite);
+            }
+            let hitbox: Result<Table, rlua::Error> = value.get("Hitbox");
+            if hitbox.is_ok() {
+                let hitbox = hitbox.unwrap();
+                handle_lua_vec!("pos", pos, 2, hitbox, entity.hitbox);
+                handle_lua_vec!("size", size, 2, hitbox, entity.hitbox);
+                handle_lua_vec!("vel", vel, 2, hitbox, entity.hitbox);
+                handle_lua_elem!(f32, "mass", mass, hitbox, entity.hitbox);
+                handle_lua_elem!(u32, "simulate", simulate, hitbox, entity.hitbox);
+                // handle_lua_elem!(u32, "deleted", deleted, hitbox, entity);
+            }
+            handle_lua_elem!(String, "data", data, value, entity);
+            handle_lua_elem!(bool, "deleted", deleted, value, entity);
+
+            entities.push(entity);
+        }
+        // println!("{entities:?}");
+    });
+
     // let data2 = 0..64; //staging, gpu 1, gpu 2, download (eventually)
 
     // lua.context(|lua_ctx| {
@@ -153,8 +177,4 @@ fn main() {
         lua_obj,
     );
     //main.rs is done now as window now has control
-}
-
-pub fn test() {
-    println!("luad");
 }

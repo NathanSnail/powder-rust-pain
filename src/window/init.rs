@@ -32,6 +32,8 @@ use winit::dpi::PhysicalSize;
 
 use winit::window::Window;
 
+use self::fragment_shader::Sprite;
+
 use super::utils::{self, CPUVertex};
 
 type FenceExpanded = Option<
@@ -232,6 +234,19 @@ pub mod vertex_shader {
 pub mod fragment_shader {
     vulkano_shaders::shader! {
         ty: "fragment",
-        path:"src/shaders/test/test_frag.frag"
+        path:"src/shaders/test/test_frag.frag",
+		custom_derives: [Debug,Clone,Copy],
+    }
+}
+
+impl Default for Sprite {
+    fn default() -> Self {
+        Sprite {
+            pos: [0f32, 0f32],
+            size: [0f32, 0f32],
+            offset: [0f32, 0f32],
+            scale: [0f32, 0f32],
+            deleted: 0,
+        }
     }
 }

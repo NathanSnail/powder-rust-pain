@@ -32,12 +32,21 @@ pub fn create(lua_ctx: Context, entities: Vec<Entity>, frame: usize, time: u128)
         .unwrap();
     globals.set("EntitySetComponentValue", temp_fn).unwrap();
 
+    let entities_clone = entities.clone(); // hackery to move to two different closures.
     let temp_fn = lua_ctx
         .create_function(move |lua_ctx, (id, path): (usize, String)| {
-            get_entity_value(lua_ctx, &entities, id, path).to_lua_multi(lua_ctx)
+            get_entity_value(lua_ctx, &entities_clone, id, path).to_lua_multi(lua_ctx)
         })
         .unwrap();
     globals.set("EntityGetComponentValue", temp_fn).unwrap();
+
+    let temp_fn = lua_ctx
+        .create_function(move |lua_ctx, _: Value| {
+            create_entity(lua_ctx, &entities);
+            Result::Ok(())
+        })
+        .unwrap();
+    globals.set("CreateEntity", temp_fn).unwrap();
 }
 
 fn get_entities<'a>(lua_ctx: &Context<'a>, entities: &[Entity]) -> Table<'a> {
@@ -62,8 +71,17 @@ fn get_cur_time(time: u128) -> u128 {
 }
 
 fn set_entity_value(lua_ctx: Context, id: usize, path: String, values: Table) {
-    let mut cmd = "deltas = deltas or {};table.insert(deltas,{".to_owned();
-    let value1 = &values.get::<usize, String>(1).unwrap()[..];
+    let mut cmd = "RS_deltas = RS_deltas or {};table.insert(RS_deltas,{".to_owned();
+    let v_typer = values.get::<usize, String>(1);
+    let value1 = &if v_typer.is_err() {
+        if values.get::<usize, bool>(1).unwrap() {
+            "true".to_owned()
+        } else {
+            "false".to_owned()
+        } // others get type coerced
+    } else {
+        values.get::<usize, String>(1).unwrap()
+    }[..];
     let value2 = &(if values.len().unwrap() == 2 {
         values.get::<usize, String>(2).unwrap()
     } else {
@@ -77,10 +95,10 @@ fn set_entity_value(lua_ctx: Context, id: usize, path: String, values: Table) {
     cmd.push(',');
     cmd.push_str(value2);
     cmd.push_str("})");
-	// println!("cmd");
-	// println!("{cmd:?}");
+    // println!("cmd");
+    // println!("{cmd:?}");
     lua_ctx.load(&cmd[..]).exec().unwrap();
-	// println!("cont");
+    // println!("cont");
 }
 
 enum EntityData<'a> {
@@ -96,8 +114,12 @@ impl ToLuaMulti<'_> for EntityData<'_> {
         match self {
             EntityData::Vec2(v) => {
                 let table_n = lua.create_table().unwrap();
-                table_n.set("x", v.get::<String, f32>("x".to_string()).unwrap()).unwrap();
-                table_n.set("y", v.get::<String, f32>("y".to_string()).unwrap()).unwrap();
+                table_n
+                    .set("x", v.get::<String, f32>("x".to_string()).unwrap())
+                    .unwrap();
+                table_n
+                    .set("y", v.get::<String, f32>("y".to_string()).unwrap())
+                    .unwrap();
                 rlua::Result::Ok(table_n.to_lua_multi(lua).unwrap())
             }
             EntityData::Float(v) => rlua::Result::Ok(v.to_lua_multi(lua).unwrap()),
@@ -114,7 +136,7 @@ fn get_entity_value<'a>(
     id: usize,
     path: String,
 ) -> EntityData<'a> {
-    let deltas = lua_ctx.globals().get("deltas");
+    let RS_deltas = lua_ctx.globals().get("RS_deltas");
     let mut val = EntityData::Nil();
     match &path[..] {
         // code duplication with minor differences, ideally id use macros but no time
@@ -174,9 +196,9 @@ fn get_entity_value<'a>(
         }
         _ => (panic!("invalid path")),
     }
-    if deltas.is_ok() {
-        let deltas: Table = deltas.unwrap();
-        for elem in deltas.pairs::<usize, Table>() {
+    if RS_deltas.is_ok() {
+        let RS_deltas: Table = RS_deltas.unwrap();
+        for elem in RS_deltas.pairs::<usize, Table>() {
             let (_, value) = elem.unwrap();
             let eid: usize = value.get(1).unwrap();
             let cid: String = value.get(2).unwrap();
@@ -258,4 +280,47 @@ fn get_entity_value<'a>(
         }
     }
     val
+}
+
+fn create_entity<'a>(lua_ctx: Context<'a>, entities: &[Entity]) {
+    let mut idx = 2u32.pow(30); // if you hit this you have bigger problems
+    for (key, entity) in entities.iter().enumerate() {
+        if entity.deleted == true {
+            let mut cmd = r"
+			RS_created = RS_created or {}
+			for k,v in ipairs(RS_created) do
+				print(k)
+				print(v)
+				if k == "
+                .to_owned();
+            cmd.push_str(&key.to_string()[..]);
+            cmd.push_str(
+                r"
+				then
+				return -1",
+            );
+            cmd.push_str(
+                r"
+			end
+			end
+			return 1",
+            );
+			println!("{cmd}");
+            if lua_ctx.load(&cmd[..]).eval::<u32>().unwrap() == 1 {
+                idx = key as u32;
+                break;
+            }
+        }
+    }
+    let target = if idx >= 2u32.pow(30)
+    // greater than lol
+    {
+        -1i32
+    } else {
+        idx as i32
+    };
+    let mut cmd = "RS_created = RS_created or {};table.insert(RS_created,".to_owned();
+    cmd.push_str(&target.to_string()[..]);
+    cmd.push(')');
+    lua_ctx.load(&cmd[..]).exec().unwrap();
 }

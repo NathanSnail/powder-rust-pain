@@ -34,7 +34,7 @@ pub fn get_deploy_command<T>(
     device: &Arc<Device>,
     queue: &Arc<Queue>,
     buffer_particle: &Subbuffer<[T]>,
-    buffer_hit: &Subbuffer<[Padded<Hitbox,0>]>,
+    buffer_hit: &Subbuffer<[Padded<Hitbox, 4>]>,
     work_group_counts: [u32; 3],
 ) -> vulkano::command_buffer::PrimaryAutoCommandBuffer {
     let compute_pipeline = ComputePipeline::new(
