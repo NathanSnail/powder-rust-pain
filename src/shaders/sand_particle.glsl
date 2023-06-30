@@ -4,15 +4,15 @@
 
 struct Material {
 	vec3 colour; // 12
-	uint id; // 16
+	uint id; // 16 (unused) for binding forces
 	vec2 pos; // 24
 	vec2 vel; // 32
-	vec2 target; // 40
+	vec2 target; // 40 attractor point
 	float mass; // 44
-	float force; // 48
-	float stable; // 52
-	uint tags; // 56
-	uint gas; // 60
+	float force; // 48 amount of attraction to target
+	float stable; // 52 amount of resistance to pushing before target decouples
+	uint tags; // 56 (unused) bit flags
+	uint gas; // 60 antigrav
 }; // +4
 
 struct Hitbox {

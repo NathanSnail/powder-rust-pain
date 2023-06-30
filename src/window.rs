@@ -8,6 +8,7 @@ use crate::simulation::sand::sand_shader::Hitbox;
 use crate::simulation::sand::upload_standard_buffer;
 use crate::simulation::sand::{self, sand_shader::Material, PADDING};
 use rlua::Lua;
+use rlua::Value::Nil;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::{
     AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage, CopyBufferInfo,
@@ -187,12 +188,8 @@ pub fn make_window(
     // lua
 
     lua_obj.context(|ctx| {
-        lua_funcs::create(ctx);
-
-        let content = fs::read_to_string("./init.lua").unwrap();
-        let lua_value = ctx.load(&content[..]).eval::<bool>().unwrap();
-		println!("{lua_value:?}");
-    });
+        lua_funcs::create(ctx, &mut entities); // initialise funcs after world init because entities don't exist then.
+	});
 
     event_loop.run(move |event, _, control_flow| match event {
         Event::WindowEvent {
