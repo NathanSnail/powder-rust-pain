@@ -7,8 +7,8 @@ use crate::simulation::ecs::{self, Entity};
 use crate::simulation::sand::sand_shader::Hitbox;
 use crate::simulation::sand::upload_standard_buffer;
 use crate::simulation::sand::{self, sand_shader::Material, PADDING};
-use rlua::Lua;
 use rlua::Value::Nil;
+use rlua::{Chunk, Lua};
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::{
     AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage, CopyBufferInfo,
@@ -109,7 +109,6 @@ pub fn make_window(
     // Transfer complete
     let compute_shader_loaded =
         sand::sand_shader::load(device.clone()).expect("Failed to create compute shader.");
-    
 
     let mut entities = init_entities;
 
@@ -126,13 +125,13 @@ pub fn make_window(
         .map(|e| Padded::<Hitbox, 0>(e.hitbox))
         .collect();
     let mut hitbox_buffer = upload_standard_buffer(hitbox_collection, &memory_allocator);
-	
-	let deploy_command = Arc::new(deploy_shader::get_deploy_command(
+
+    let deploy_command = Arc::new(deploy_shader::get_deploy_command(
         &compute_shader_loaded,
         &device,
         &compute_queue,
         &world_buffer_inaccessible,
-		&hitbox_buffer,
+        &hitbox_buffer,
         work_groups,
     ));
 
@@ -189,10 +188,15 @@ pub fn make_window(
     let mut next_future: Option<FenceSignalFuture<CommandBufferExecFuture<NowFuture>>> = None;
 
     // lua
-
     lua_obj.context(|ctx| {
-        lua_funcs::create(ctx, &mut entities); // initialise funcs after world init because entities don't exist then.
-	});
+        lua_funcs::create(ctx, entities.clone()); // initialise funcs after world init because entities don't exist then.
+        let globals = ctx.globals();
+		let tick_handle = ctx // load the tick method
+            .load(&fs::read_to_string("./data/tick.lua").unwrap()[..])
+            .into_function()
+            .unwrap();
+		globals.set("RS_tick_handle", tick_handle);
+    });
 
     event_loop.run(move |event, _, control_flow| match event {
         Event::WindowEvent {
@@ -314,8 +318,16 @@ pub fn make_window(
                 }
             }
             // ecs stuff
-
-            ecs::regenerate(&mut entities, &mut sprite_buffer, &mut hitbox_buffer);
+			lua_obj.context(|ctx|
+			{
+				ecs::regenerate(
+					&mut entities,
+					&mut sprite_buffer,
+					&mut hitbox_buffer,
+					ctx
+				);
+			});
+            
 
             // atlas
             // let mut builder = AutoCommandBufferBuilder::primary(

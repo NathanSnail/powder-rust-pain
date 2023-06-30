@@ -1,5 +1,8 @@
+use rlua::Value::Nil;
+use rlua::{Context, Function};
 use vulkano::padded::Padded;
 
+use crate::lua_funcs;
 use crate::simulation::sand::sand_shader::Hitbox;
 use crate::window::init::fragment_shader::Sprite;
 use vulkano::buffer::Subbuffer;
@@ -9,6 +12,7 @@ pub struct Entity {
     pub sprite: Sprite,
     pub hitbox: Hitbox,
     pub data: String,
+	pub deleted: bool,
 }
 
 fn regen_from_gpu(entities: &mut Vec<Entity>, buffer: &Subbuffer<[Padded<Hitbox, 0>]>) {
@@ -40,7 +44,10 @@ pub fn regenerate(
     entities: &mut Vec<Entity>,
     sprite_buffer: &mut Subbuffer<[Padded<Sprite, 0>]>,
     hitbox_buffer: &mut Subbuffer<[Padded<Hitbox, 0>]>,
+	ctx: Context,
 ) {
     regen_from_gpu(entities, &hitbox_buffer); // gpu can only write to hitboxes
+	lua_funcs::create(ctx, entities.clone()); // rust safety requires this massive performance hit and general difficulty causer
+	ctx.load("RS_tick_handle()").exec().unwrap();
     regen_from_cpu(&entities, sprite_buffer, hitbox_buffer);
 }

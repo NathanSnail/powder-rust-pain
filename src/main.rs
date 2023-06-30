@@ -58,7 +58,7 @@ fn main() {
     let mut world: Vec<Padded<Material, PADDING>> = Vec::new();
 
     lua_obj.context(|ctx| {
-        let content = fs::read_to_string("./init.lua").unwrap(); // load init func
+        let content = fs::read_to_string("./data/init.lua").unwrap(); // load init func
         let data = ctx.load(&content[..]).eval::<Table>().unwrap();
 
         for elem in data.pairs::<usize, Table>() {
@@ -110,7 +110,7 @@ fn main() {
         hitbox: Hitbox {
             pos: [0f32, 0f32],
             size: [0.5f32, 0.5f32],
-			vel: [0f32, 0f32],
+            vel: [0f32, 0f32],
             mass: 1f32,
             simulate: 0, // 0 && 1 for true and false because of shader weirdness.
         },
@@ -121,6 +121,7 @@ fn main() {
             scale: [3.0f32, 3.0f32],
         },
         data: "".to_owned(),
+		deleted: false,
     }];
     // let data2 = 0..64; //staging, gpu 1, gpu 2, download (eventually)
 

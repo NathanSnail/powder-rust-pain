@@ -182,7 +182,7 @@ pub fn get_image(
     uploads: &mut AutoCommandBufferBuilder<PrimaryAutoCommandBuffer>,
 ) -> (Arc<ImageView<ImmutableImage>>, Arc<Sampler>) {
     let texture = {
-        let png_bytes = { fs::read("./atlas.png").expect("Can't read atlas") };
+        let png_bytes = { fs::read("./data/atlas.png").expect("Can't read atlas") };
         let cursor = Cursor::new(png_bytes);
         let decoder = png::Decoder::new(cursor);
         let mut reader = decoder.read_info().unwrap();
