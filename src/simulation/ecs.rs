@@ -43,11 +43,6 @@ fn regen_from_cpu(
     sprite_buffer: &mut Subbuffer<[Padded<Sprite, 4>]>,
     hitbox_buffer: &mut Subbuffer<[Padded<Hitbox, 4>]>,
 ) {
-    let mut sprites_collection: Vec<Padded<Sprite, 4>> = // anonymous lambdas
-        entities.into_iter().map(|e| Padded(e.sprite)).collect();
-    let mut hitbox_collection: Vec<Padded<Sprite, 4>> =
-        entities.into_iter().map(|e| Padded(e.sprite)).collect();
-
     let mut buffer_writer_sprite = sprite_buffer.write().unwrap(); // locks
     let mut buffer_writer_hitbox = hitbox_buffer.write().unwrap();
 
@@ -56,6 +51,8 @@ fn regen_from_cpu(
         buffer_writer_sprite[c] = Padded::from(entity.sprite);
         buffer_writer_hitbox[c] = Padded::from(entity.hitbox);
         // c += 1;
+        // let hb = entity.hitbox;
+        // println!("{hb:?}");
     }
 }
 

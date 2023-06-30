@@ -19,11 +19,24 @@ local data = EntityGetComponentValue(0, "sprite.pos")
 EntitySetComponentValue(0, "sprite.pos", { data.x - 0.50, data.y }) -- editing works multiple times / frame
 
 local data = EntityGetComponentValue(0, "deleted")
--- print(data)                                       -- multiple types support
-EntitySetComponentValue(0, "deleted", { not data }) -- deleting entities (note handling undeletion is not garunteed - new entities could have overwritten data)
+print(data) -- multiple types support
+-- EntitySetComponentValue(0, "deleted", { not data }) -- deleting entities (note handling undeletion is not garunteed - new entities could have overwritten data)
 -- this also creates a strange visual effect depending on monitor due to ghosting taking a frame to clear.
+-- not deleting here because its the only interesting entity
 
-
+-- local e = GetEntities()
+-- for k, v in ipairs(e) do
+-- 	local d = EntityGetComponentValue(v, "data")
+-- 	if d == "clean" then
+-- 		EntitySetComponentValue(v, "hitbox.size", { math.random(), math.random() })
+-- 		EntitySetComponentValue(v, "data", {"dirty"})
+-- 		for k,v in ipairs(RS_deltas) do
+-- 			for k,v in ipairs(v) do
+-- 				print(v)
+-- 			end
+-- 		end
+-- 	end
+-- end
 
 if math.random() <= 0.05 and GetFrame() >= 3 then
 	CreateEntity() -- we can use this in 1 frame

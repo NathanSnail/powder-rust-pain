@@ -72,7 +72,8 @@ fn get_cur_time(time: u128) -> u128 {
 
 fn set_entity_value(lua_ctx: Context, id: usize, path: String, values: Table) {
     let mut cmd = "RS_deltas = RS_deltas or {};table.insert(RS_deltas,{".to_owned();
-    let v_typer = values.get::<usize, String>(1);
+    // println!("{path:?}");
+	let v_typer = values.get::<usize, String>(1);
     let value1 = &if v_typer.is_err() {
         if values.get::<usize, bool>(1).unwrap() {
             "true".to_owned()
@@ -80,6 +81,7 @@ fn set_entity_value(lua_ctx: Context, id: usize, path: String, values: Table) {
             "false".to_owned()
         } // others get type coerced
     } else {
+		println!("stringy");
         values.get::<usize, String>(1).unwrap()
     }[..];
     let value2 = &(if values.len().unwrap() == 2 {
@@ -194,7 +196,7 @@ fn get_entity_value<'a>(
         "deleted" => {
             val = EntityData::Bool(entities[id].deleted);
         }
-        _ => (panic!("invalid path")),
+        _ => panic!("invalid path"),
     }
     if RS_deltas.is_ok() {
         let RS_deltas: Table = RS_deltas.unwrap();
@@ -284,7 +286,7 @@ fn get_entity_value<'a>(
 
 fn create_entity<'a>(lua_ctx: Context<'a>, entities: &[Entity]) {
     let mut idx = 2u32.pow(30); // if you hit this you have bigger problems
-	for (key, entity) in entities.iter().enumerate() {
+    for (key, entity) in entities.iter().enumerate() {
         if entity.deleted {
             let mut cmd = r"
 			RS_created = RS_created or {}

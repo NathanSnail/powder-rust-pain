@@ -39,6 +39,15 @@ macro_rules! handle_lua_elem {
     };
 }
 
+macro_rules! handle_lua_elem_spec {
+    ($type_of:ty, $name:expr, $dest:ident, $value:expr, $building_mat:expr) => {
+        let cv = $value.get::<&str, $type_of>($name);
+        if cv.is_ok() {
+            $building_mat.$dest = if cv.unwrap() {1} else {0};
+        }
+    };
+}
+
 macro_rules! handle_lua_vec {
     ($name:expr, $dest:ident, $count:expr, $value:expr, $building_mat:expr) => {
         let cv = $value.get::<&str, Table>($name);
@@ -127,7 +136,7 @@ fn main() {
                 handle_lua_vec!("size", size, 2, sprite, entity.sprite);
                 handle_lua_vec!("offset", offset, 2, sprite, entity.sprite);
                 handle_lua_vec!("scale", scale, 2, sprite, entity.sprite);
-                // handle_lua_elem!(u32, "deleted", deleted, sprite, entity.sprite);
+                handle_lua_elem_spec!(bool, "deleted", deleted, sprite, entity.sprite);
             }
             let hitbox: Result<Table, rlua::Error> = value.get("Hitbox");
             if hitbox.is_ok() {
@@ -137,7 +146,7 @@ fn main() {
                 handle_lua_vec!("vel", vel, 2, hitbox, entity.hitbox);
                 handle_lua_elem!(f32, "mass", mass, hitbox, entity.hitbox);
                 handle_lua_elem!(u32, "simulate", simulate, hitbox, entity.hitbox);
-                // handle_lua_elem!(u32, "deleted", deleted, hitbox, entity);
+                handle_lua_elem!(bool, "deleted", deleted, hitbox, entity);
             }
             handle_lua_elem!(String, "data", data, value, entity);
             handle_lua_elem!(bool, "deleted", deleted, value, entity);

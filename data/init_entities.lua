@@ -10,7 +10,7 @@ o = { {
 		scale = {3.0,3.0},
 	}
 } }
-for i = 1, 32 do
+for i = 1, 64 do
 	table.insert(o, { deleted = true, Hitbox = { deleted = true }, Sprite = { deleted = true } }) -- allocate memory for more entities
 	-- in this toy example itll crash pretty fast because we allocate way too little memory, just showing POC
 end
