@@ -60,7 +60,7 @@ pub fn regenerate(
             let eid: usize = value.get(1).unwrap();
             let cid: String = value.get(2).unwrap();
             match &cid[..] {
-                "sprite.pos" => {
+                "sprite.pos" => { // ugly match pattern
                     let data1 = value.get(3).unwrap();
                     let data2 = value.get(4).unwrap();
                     entities[eid].sprite.pos = [data1, data2];
@@ -102,7 +102,9 @@ pub fn regenerate(
                     entities[eid].data = value.get(3).unwrap();
                 }
                 "deleted" => entities[eid].deleted = value.get(3).unwrap(),
-                _ => {}
+                _ => {
+                    panic!("invalid path")
+                }
             }
         }
     }
