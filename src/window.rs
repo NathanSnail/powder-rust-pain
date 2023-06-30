@@ -1,5 +1,6 @@
 use std::fs;
 use std::sync::Arc;
+use std::time::SystemTime;
 
 use crate::{deploy_shader, lua_funcs};
 
@@ -188,14 +189,20 @@ pub fn make_window(
     let mut next_future: Option<FenceSignalFuture<CommandBufferExecFuture<NowFuture>>> = None;
 
     // lua
+    let mut frame_lua = 0;
+    let mut time_lua = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap()
+        .as_millis();
+
     lua_obj.context(|ctx| {
-        lua_funcs::create(ctx, entities.clone()); // initialise funcs after world init because entities don't exist then.
+        lua_funcs::create(ctx, entities.clone(), frame_lua.clone(), time_lua.clone()); // initialise funcs after world init because entities don't exist then.
         let globals = ctx.globals();
-		let tick_handle = ctx // load the tick method
+        let tick_handle = ctx // load the tick method
             .load(&fs::read_to_string("./data/tick.lua").unwrap()[..])
             .into_function()
             .unwrap();
-		globals.set("RS_tick_handle", tick_handle);
+        globals.set("RS_tick_handle", tick_handle);
     });
 
     event_loop.run(move |event, _, control_flow| match event {
@@ -318,16 +325,21 @@ pub fn make_window(
                 }
             }
             // ecs stuff
-			lua_obj.context(|ctx|
-			{
-				ecs::regenerate(
-					&mut entities,
-					&mut sprite_buffer,
-					&mut hitbox_buffer,
-					ctx
-				);
-			});
-            
+            lua_obj.context(|ctx| {
+                frame_lua += 1;
+                time_lua = SystemTime::now()
+                    .duration_since(SystemTime::UNIX_EPOCH)
+                    .unwrap()
+                    .as_millis();
+                ecs::regenerate(
+                    &mut entities,
+                    &mut sprite_buffer,
+                    &mut hitbox_buffer,
+                    ctx,
+                    frame_lua,
+                    time_lua,
+                );
+            });
 
             // atlas
             // let mut builder = AutoCommandBufferBuilder::primary(
